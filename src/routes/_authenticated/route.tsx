@@ -9,8 +9,9 @@ import {
 import ProfileDropDown from "@/components/profile-dropdown";
 
 export const Route = createFileRoute("/_authenticated")({
-  beforeLoad: () => {
-    const token = localStorage.getItem("auth_token");
+  beforeLoad: async ({ context }: any) => {
+    // Convex Auth stores the token in localStorage via @convex-dev/auth
+    const token = localStorage.getItem("__convexAuthJWT");
     if (!token) {
       throw redirect({ to: "/login" });
     }
@@ -25,7 +26,7 @@ function RouteComponent() {
       <SidebarInset className="min-h-svh min-w-0">
         <header className="flex h-14 shrink-0 items-center gap-4 border-b px-6">
           <SidebarTrigger />
-          <span className="text-sm font-medium">Admin Panel</span>
+          <span className="text-sm font-medium">CPipe Tracker</span>
           <div className="ml-auto gap-2 flex items-center justify-center">
             <ThemeToggle />
             <ProfileDropDown />

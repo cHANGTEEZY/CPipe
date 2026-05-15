@@ -1,70 +1,47 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  AppleIcon,
-  AuthDivider,
-  GoogleIcon,
-} from "@/components/auth/auth-split-layout"
-import { PasswordField } from "@/components/auth/password-field"
-import { login } from "@/lib/auth"
-import { useMemo, useState } from "react"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AuthDivider } from "@/components/auth/auth-split-layout";
+import { PasswordField } from "@/components/auth/password-field";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const INPUT_CLASS =
-  "h-11 rounded-xl border-border/55 bg-secondary/35 placeholder:text-muted-foreground/75"
+  "h-11 rounded-xl border-border/55 bg-secondary/35 placeholder:text-muted-foreground/75";
 
 export const Route = createFileRoute("/(auth)/login")({
   component: LoginPage,
-})
+});
 
 function LoginPage() {
-  const navigate = useNavigate()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
+  const navigate = useNavigate();
+  const { signIn } = useAuthActions();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const canSubmit = useMemo(
-    () => email.trim().length > 0 && password.length > 0,
-    [email, password],
-  )
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError("")
-    if (!login(email, password)) {
-      setError("Invalid email or password")
-      return
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await signIn("password", { email, password, flow: "signIn" });
+      navigate({ to: "/" });
+    } catch (err: any) {
+      toast.error(err.message ?? "Invalid email or password");
+    } finally {
+      setLoading(false);
     }
-    navigate({ to: "/" })
   }
 
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Welcome!</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Welcome back!</h1>
         <p className="text-sm text-muted-foreground">
-          Log in to Admin Panel to continue to your dashboard.
+          Log in to CPipe Tracker to continue.
         </p>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-11 w-full rounded-xl gap-2.5 font-medium text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
-        >
-          <GoogleIcon />
-          Log in with Google
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-11 w-full rounded-xl gap-2.5 font-medium text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
-        >
-          <AppleIcon />
-          Log in with Apple
-        </Button>
       </div>
 
       <AuthDivider />
@@ -108,17 +85,12 @@ function LoginPage() {
           />
         </div>
 
-        {error ? (
-          <p className="text-sm font-medium text-destructive">{error}</p>
-        ) : null}
-
         <Button
           type="submit"
-          variant="secondary"
-          disabled={!canSubmit}
-          className="h-11 w-full rounded-xl text-base font-medium text-foreground hover:bg-secondary/70 disabled:pointer-events-none disabled:opacity-40"
+          disabled={loading || !email || !password}
+          className="h-11 w-full rounded-xl text-base font-medium disabled:opacity-40"
         >
-          Log in
+          {loading ? "Signing in…" : "Log in"}
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
@@ -129,5 +101,5 @@ function LoginPage() {
         </p>
       </form>
     </div>
-  )
+  );
 }
