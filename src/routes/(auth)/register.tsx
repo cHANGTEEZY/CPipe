@@ -2,13 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  AppleIcon,
-  AuthDivider,
-  GoogleIcon,
-} from "@/components/auth/auth-split-layout"
+import { AuthDivider } from "@/components/auth/auth-split-layout"
 import { PasswordField } from "@/components/auth/password-field"
-import { useMemo, useState } from "react"
+import { useAuthActions } from "@convex-dev/auth/react"
+import { useState } from "react"
+import { toast } from "sonner"
 
 const INPUT_CLASS =
   "h-11 rounded-xl border-border/55 bg-secondary/35 placeholder:text-muted-foreground/75"
@@ -19,33 +17,38 @@ export const Route = createFileRoute("/(auth)/register")({
 
 function RegisterPage() {
   const navigate = useNavigate()
+  const { signIn } = useAuthActions()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
-  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const canSubmit = useMemo(
-    () =>
-      name.trim().length > 0 &&
-      email.trim().length > 0 &&
-      password.length >= 8 &&
-      password === confirm,
-    [name, email, password, confirm],
-  )
+  const canSubmit =
+    name.trim().length > 0 &&
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    password === confirm
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError("")
     if (password !== confirm) {
-      setError("Passwords must match.")
+      toast.error("Passwords must match.")
       return
     }
     if (password.length < 8) {
-      setError("Use at least 8 characters.")
+      toast.error("Use at least 8 characters.")
       return
     }
-    navigate({ to: "/login" })
+    setLoading(true)
+    try {
+      await signIn("password", { email, password, name, flow: "signUp" })
+      navigate({ to: "/" })
+    } catch (err: any) {
+      toast.error(err.message ?? "Registration failed")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -53,27 +56,8 @@ function RegisterPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Sign up</h1>
         <p className="text-sm text-muted-foreground">
-          Create your Admin Panel account to get started.
+          Create your CPipe Tracker account to get started.
         </p>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-11 w-full rounded-xl gap-2.5 font-medium text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
-        >
-          <GoogleIcon />
-          Sign up with Google
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-11 w-full rounded-xl gap-2.5 font-medium text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
-        >
-          <AppleIcon />
-          Sign up with Apple
-        </Button>
       </div>
 
       <AuthDivider />
@@ -139,17 +123,12 @@ function RegisterPage() {
           />
         </div>
 
-        {error ? (
-          <p className="text-sm font-medium text-destructive">{error}</p>
-        ) : null}
-
         <Button
           type="submit"
-          variant="secondary"
-          disabled={!canSubmit}
-          className="h-11 w-full rounded-xl text-base font-medium text-foreground hover:bg-secondary/70 disabled:pointer-events-none disabled:opacity-40"
+          disabled={!canSubmit || loading}
+          className="h-11 w-full rounded-xl text-base font-medium disabled:opacity-40"
         >
-          Create account
+          {loading ? "Creating account…" : "Create account"}
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
