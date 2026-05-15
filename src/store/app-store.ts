@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "@convex/_generated/dataModel";
 
 interface AppState {
   activeWorkspaceId: Id<"workspaces"> | null;

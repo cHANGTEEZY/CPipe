@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X } from "lucide-react";

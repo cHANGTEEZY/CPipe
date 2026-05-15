@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { useAppStore } from "@/store/app-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "@convex/_generated/dataModel";
 
 export function ProjectSwitcher() {
   const { activeWorkspaceId, activeProjectId, setActiveProject } = useAppStore();

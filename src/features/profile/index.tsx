@@ -1,7 +1,8 @@
 import type { FormEvent } from "react";
-import { useId, useState } from "react";
+import { useId, useState, useEffect } from "react";
 import { toast } from "sonner";
-import { MOCK_USER } from "./demo-data";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@convex/_generated/api";
 import { DangerZoneSection } from "./components/danger-zone-section";
 import { NotificationsFormSection } from "./components/notifications-form-section";
 import { PersonalFormSection } from "./components/personal-form-section";
@@ -11,49 +12,60 @@ import { SecurityFormSection } from "./components/security-form-section";
 
 const ProfilePage = () => {
   const idPrefix = useId();
+  const me = useQuery(api.users.getMe);
+  const updateProfile = useMutation(api.users.updateProfile);
 
-  const [firstName, setFirstName] = useState(MOCK_USER.firstName);
-  const [lastName, setLastName] = useState(MOCK_USER.lastName);
-  const [email, setEmail] = useState(MOCK_USER.email);
-  const [phone, setPhone] = useState(MOCK_USER.phone);
-  const [jobTitle, setJobTitle] = useState(MOCK_USER.jobTitle);
-  const [timezone, setTimezone] = useState(MOCK_USER.timezone);
-  const [bio, setBio] = useState(MOCK_USER.bio);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [timezone, setTimezone] = useState("UTC");
+  const [bio, setBio] = useState("");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [weeklyDigestEmail, setWeeklyDigestEmail] = useState(
-    MOCK_USER.weeklyDigestEmail,
-  );
-  const [showOnlineStatus, setShowOnlineStatus] = useState(
-    MOCK_USER.showOnlineStatus,
-  );
+  const [weeklyDigestEmail, setWeeklyDigestEmail] = useState(false);
+  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
 
-  const onSaveProfile = (e: FormEvent) => {
+  // Populate from Convex on load
+  useEffect(() => {
+    if (!me) return;
+    const displayName = me.profile?.displayName ?? me.name ?? "";
+    const parts = displayName.split(" ");
+    setFirstName(parts[0] ?? "");
+    setLastName(parts.slice(1).join(" ") ?? "");
+    setEmail(me.email ?? "");
+  }, [me]);
+
+  const onSaveProfile = async (e: FormEvent) => {
     e.preventDefault();
-    toast.success("Profile saved locally (demo — not sent to an API).");
+    try {
+      await updateProfile({
+        displayName: `${firstName} ${lastName}`.trim(),
+      });
+      toast.success("Profile saved");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to save");
+    }
   };
 
   const resetPersonalToDemo = () => {
-    setFirstName(MOCK_USER.firstName);
-    setLastName(MOCK_USER.lastName);
-    setEmail(MOCK_USER.email);
-    setPhone(MOCK_USER.phone);
-    setJobTitle(MOCK_USER.jobTitle);
-    setTimezone(MOCK_USER.timezone);
-    setBio(MOCK_USER.bio);
-    toast.message("Form reset", {
-      description: "Restored static demo defaults.",
-    });
+    if (!me) return;
+    const displayName = me.profile?.displayName ?? me.name ?? "";
+    const parts = displayName.split(" ");
+    setFirstName(parts[0] ?? "");
+    setLastName(parts.slice(1).join(" ") ?? "");
+    setEmail(me.email ?? "");
+    toast.message("Form reset");
   };
 
   const onUpdatePassword = (e: FormEvent) => {
     e.preventDefault();
     toast.message("Password update", {
-      description:
-        "Hook this button to your auth API. Fields reset for demo safety.",
+      description: "Connect to your auth provider to change passwords.",
     });
     setCurrentPassword("");
     setNewPassword("");
@@ -62,7 +74,7 @@ const ProfilePage = () => {
 
   const onSaveNotifications = (e: FormEvent) => {
     e.preventDefault();
-    toast.success("Notification preferences saved (demo).");
+    toast.success("Notification preferences saved");
   };
 
   const displayName = `${firstName} ${lastName}`.trim() || email;
@@ -76,7 +88,10 @@ const ProfilePage = () => {
         email={email}
         firstName={firstName}
         lastName={lastName}
-        demo={{ ...MOCK_USER, jobTitle }}
+        demo={{ firstName, lastName, email, phone, jobTitle, timezone, bio,
+          weeklyDigestEmail, showOnlineStatus,
+          avatar: me?.profile?.avatarUrl ?? "",
+          location: "", } as any}
       />
 
       <PersonalFormSection

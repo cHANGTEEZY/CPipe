@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { useAppStore } from "@/store/app-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "@convex/_generated/dataModel";
 
 export function OrgSwitcher() {
   const workspaces = useQuery(api.workspaces.list) ?? [];

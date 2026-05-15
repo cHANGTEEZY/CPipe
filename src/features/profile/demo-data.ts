@@ -1,22 +1,23 @@
-import type { AuthUser } from "@/api/auth";
-
-export type ProfileDemo = AuthUser & {
+export type ProfileDemo = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: string;
   phone: string;
   jobTitle: string;
   timezone: string;
   bio: string;
-  memberSinceLabel: string;
+  memberSinceLabel?: string;
   weeklyDigestEmail: boolean;
   showOnlineStatus: boolean;
+  location?: string;
 };
 
-/** Static seed data — swap for API payloads later. */
+/** Fallback seed data — replaced at runtime by Convex `getMe` query */
 export const MOCK_USER: ProfileDemo = {
-  id: "ctz_23",
-  email: "chang@example.com",
   firstName: "Chang",
   lastName: "Teezy",
-  role: "administrator",
+  email: "chang@example.com",
   avatar: undefined,
   phone: "+1 (555) 012-3491",
   jobTitle: "Senior Software Engineer",

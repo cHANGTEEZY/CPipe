@@ -16,7 +16,7 @@ import { OrgSwitcher } from "@/components/org-switcher";
 import { ProjectSwitcher } from "@/components/project-switcher";
 import { useAppStore } from "@/store/app-store";
 import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {

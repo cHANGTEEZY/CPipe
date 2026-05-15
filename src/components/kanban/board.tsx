@@ -13,8 +13,8 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { KanbanColumn } from "./column";
 import { KanbanCard } from "./card";
 import { AddColumnForm } from "./add-column-form";

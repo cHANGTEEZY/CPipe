@@ -1,4 +1,4 @@
-import { useLogout } from "@/api";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { ConfirmAlertDialog } from "@/components/confirm-alert-dialog";
 import { Button } from "@/components/animate-ui/components/buttons/button";
 import { Separator } from "@/components/ui/separator";
@@ -17,15 +17,15 @@ const actionButtonClass =
 export function DangerZoneSection({ idPrefix }: DangerZoneSectionProps) {
   const navigate = useNavigate();
   const headingId = `${idPrefix}-danger-heading`;
-  const { mutate: logout, isPending: isLoggingOut } = useLogout();
+  const { signOut } = useAuthActions();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout(undefined, {
-      onSuccess: () => {
-        void navigate({ to: "/login" });
-      },
-    });
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await signOut();
+    void navigate({ to: "/login" });
+    setIsLoggingOut(false);
   };
 
   const handleDeleteConfirm = () => {
@@ -60,7 +60,7 @@ export function DangerZoneSection({ idPrefix }: DangerZoneSectionProps) {
               <h3 className="text-sm font-medium text-foreground">Log out</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                 End your session on this browser. You will need to sign in again
-                to access the admin panel.
+                to access the tracker.
               </p>
             </div>
             <Button
