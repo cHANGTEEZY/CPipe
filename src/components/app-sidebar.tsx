@@ -1,5 +1,4 @@
-import { Link, useLocation } from '@tanstack/react-router'
-import { useState } from 'react'
+import { Link, useLocation } from "@tanstack/react-router";
 import {
   Sidebar,
   SidebarContent,
@@ -11,131 +10,161 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-} from '@/components/animate-ui/components/radix/sidebar'
-import { sidebarItems, type SidebarItem } from '@/data/sidebarData'
-import { ChevronDown, ChevronRight } from 'lucide-react'
-
-function NavItem({ item }: { item: SidebarItem }) {
-  const [open, setOpen] = useState(false)
-  const location = useLocation()
-  const isActive = location.pathname === item.to
-  const hasChildren = item.children && item.children.length > 0
-
-  if (!hasChildren) {
-    return (
-      <SidebarMenuSubItem>
-        <SidebarMenuSubButton asChild isActive={isActive}>
-          <Link to={item.to!}>
-            {item.icon && <item.icon />}
-            <span>{item.title}</span>
-          </Link>
-        </SidebarMenuSubButton>
-      </SidebarMenuSubItem>
-    )
-  }
-
-  return (
-    <SidebarMenuSubItem>
-      <SidebarMenuSubButton
-        onClick={() => setOpen(!open)}
-        className="w-full"
-      >
-        {item.icon && <item.icon />}
-        <span>{item.title}</span>
-        <span className="ml-auto">
-          {open ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-        </span>
-      </SidebarMenuSubButton>
-      {open && (
-        <SidebarMenuSub>
-          {item.children!.map((child) => (
-            <NavItem key={child.title} item={child} />
-          ))}
-        </SidebarMenuSub>
-      )}
-    </SidebarMenuSubItem>
-  )
-}
+  SidebarSeparator,
+} from "@/components/animate-ui/components/radix/sidebar";
+import { OrgSwitcher } from "@/components/org-switcher";
+import { ProjectSwitcher } from "@/components/project-switcher";
+import { useAppStore } from "@/store/app-store";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  LayoutDashboard,
+  Settings,
+  Users,
+  LogOut,
+  User,
+  Activity,
+} from "lucide-react";
+import { toast } from "sonner";
 
 export function AppSidebar() {
+  const location = useLocation();
+  const { activeProjectId } = useAppStore();
+  const { signOut } = useAuthActions();
+  const me = useQuery(api.users.getMe);
+
+  async function handleSignOut() {
+    await signOut();
+    toast.success("Signed out");
+    window.location.href = "/login";
+  }
+
+  const projectLinks = activeProjectId
+    ? [
+        {
+          title: "Board",
+          icon: LayoutDashboard,
+          to: `/board/${activeProjectId}`,
+        },
+        {
+          title: "Settings",
+          icon: Settings,
+          to: `/board/${activeProjectId}/settings`,
+        },
+      ]
+    : [];
+
+  const globalLinks = [
+    { title: "Members", icon: Users, to: "/settings/members" },
+    { title: "Profile", icon: User, to: "/profile" },
+    { title: "Activity", icon: Activity, to: "/activity" },
+  ];
+
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-2">
-          <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-sm">
-            AP
-          </div>
-          <span className="font-semibold text-sm group-data-[collapsible=icon]:hidden">Admin Panel</span>
+      {/* ── Header: Org Switcher ── */}
+      <SidebarHeader className="gap-0 pb-0">
+        <div className="px-2 py-2">
+          <OrgSwitcher />
         </div>
       </SidebarHeader>
+
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+        {/* ── Project Switcher ── */}
+        <SidebarGroup className="pt-2 pb-1">
+          <SidebarGroupLabel>Project</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {sidebarItems.map((item) => {
-                const location = useLocation()
-                const isActive = location.pathname === item.to
-                const hasChildren = item.children && item.children.length > 0
-                if (!hasChildren) {
+            <div className="px-1">
+              <ProjectSwitcher />
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* ── Project-scoped nav ── */}
+        {projectLinks.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Current project</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {projectLinks.map((item) => {
+                  const isActive = location.pathname === item.to;
                   return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
-                        <Link to={item.to!}>
-                          {item.icon && <item.icon />}
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.title}
+                        isActive={isActive}
+                      >
+                        <Link to={item.to}>
+                          <item.icon />
                           <span>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  )
-                }
-                return <MenuItemWithChildren key={item.title} item={item} />
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        <SidebarSeparator />
+
+        {/* ── Global nav ── */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {globalLinks.map((item) => {
+                const isActive = location.pathname.startsWith(item.to);
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip={item.title}
+                      isActive={isActive}
+                    >
+                      <Link to={item.to}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
               })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      {/* ── Footer: User + Theme + Sign out ── */}
       <SidebarFooter>
-        <div className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-            JD
+        <div className="flex items-center gap-2 px-3 py-2">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
+            {me?.profile?.displayName?.[0]?.toUpperCase() ??
+              me?.name?.[0]?.toUpperCase() ??
+              "?"}
           </div>
-          <span className="truncate group-data-[collapsible=icon]:hidden">john@example.com</span>
+          <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+            <p className="text-sm font-medium truncate">
+              {me?.profile?.displayName ?? me?.name ?? "You"}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">{me?.email}</p>
+          </div>
+          <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
+            <ThemeToggle />
+            <SidebarMenuButton
+              tooltip="Sign out"
+              onClick={handleSignOut}
+              className="size-8 p-0"
+            >
+              <LogOut className="size-4" />
+            </SidebarMenuButton>
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>
-  )
-}
-
-function MenuItemWithChildren({ item }: { item: SidebarItem }) {
-  const location = useLocation()
-  const isAnyChildActive = item.children?.some((child) => location.pathname === child.to)
-  const [open, setOpen] = useState(isAnyChildActive)
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        onClick={() => setOpen(!open)}
-        className="w-full"
-        tooltip={item.title}
-        isActive={isAnyChildActive}
-      >
-        {item.icon && <item.icon />}
-        <span>{item.title}</span>
-        <span className="ml-auto group-data-[collapsible=icon]:hidden">
-          {open ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-        </span>
-      </SidebarMenuButton>
-      {open && (
-        <SidebarMenuSub>
-          {item.children!.map((child) => (
-            <NavItem key={child.title} item={child} />
-          ))}
-        </SidebarMenuSub>
-      )}
-    </SidebarMenuItem>
-  )
+  );
 }
