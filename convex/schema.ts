@@ -1,0 +1,121 @@
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
+
+export default defineSchema({
+  ...authTables,
+
+  // User profile (extends Convex auth users)
+  userProfiles: defineTable({
+    userId: v.id("users"),
+    displayName: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
+  }).index("by_userId", ["userId"]),
+
+  // Workspaces (orgs)
+  workspaces: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    ownerId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_owner", ["ownerId"]),
+
+  // Workspace members
+  members: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    role: v.union(
+      v.literal("owner"),
+      v.literal("admin"),
+      v.literal("editor"),
+      v.literal("viewer")
+    ),
+    joinedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_user", ["userId"])
+    .index("by_workspace_user", ["workspaceId", "userId"]),
+
+  // Workspace invites
+  invites: defineTable({
+    workspaceId: v.id("workspaces"),
+    email: v.string(),
+    role: v.union(
+      v.literal("admin"),
+      v.literal("editor"),
+      v.literal("viewer")
+    ),
+    token: v.string(),
+    invitedBy: v.id("users"),
+    expiresAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_token", ["token"]),
+
+  // Projects
+  projects: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    pointsEnabled: v.boolean(),
+    createdBy: v.id("users"),
+    deletedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_active", ["workspaceId", "deletedAt"]),
+
+  // Columns (statuses)
+  columns: defineTable({
+    projectId: v.id("projects"),
+    name: v.string(),
+    order: v.number(),
+    color: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_order", ["projectId", "order"]),
+
+  // Cards (tasks)
+  cards: defineTable({
+    columnId: v.id("columns"),
+    projectId: v.id("projects"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    assigneeId: v.optional(v.id("users")),
+    labels: v.array(v.string()),
+    points: v.optional(v.number()),
+    order: v.number(),
+    deletedAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_column", ["columnId"])
+    .index("by_project", ["projectId"])
+    .index("by_column_order", ["columnId", "order"])
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["projectId", "assigneeId", "deletedAt"],
+    }),
+
+  // Activity log
+  activity: defineTable({
+    entityType: v.union(
+      v.literal("card"),
+      v.literal("project"),
+      v.literal("column"),
+      v.literal("workspace")
+    ),
+    entityId: v.string(),
+    userId: v.id("users"),
+    action: v.string(), // e.g. "moved", "created", "updated", "deleted"
+    meta: v.optional(v.any()),
+    createdAt: v.number(),
+  })
+    .index("by_entity", ["entityId"])
+    .index("by_user", ["userId"]),
+});
