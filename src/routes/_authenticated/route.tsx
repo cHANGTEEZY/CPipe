@@ -1,4 +1,5 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
+import { useConvexAuth } from "convex/react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -7,19 +8,27 @@ import {
   SidebarTrigger,
 } from "@/components/animate-ui/components/radix/sidebar";
 import ProfileDropDown from "@/components/profile-dropdown";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
-  beforeLoad: async ({ context }: any) => {
-    // Convex Auth stores the token in localStorage via @convex-dev/auth
-    const token = localStorage.getItem("__convexAuthJWT");
-    if (!token) {
-      throw redirect({ to: "/login" });
-    }
-  },
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { isAuthenticated, isLoading } = useConvexAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />
