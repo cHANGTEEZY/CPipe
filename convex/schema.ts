@@ -106,6 +106,8 @@ export default defineSchema({
     points: v.optional(v.number()),
     startDate: v.optional(v.number()),
     dueDate: v.optional(v.number()),
+    status: v.optional(v.union(v.literal("on_track"), v.literal("at_risk"), v.literal("off_track"))),
+    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"))),
     order: v.number(),
     deletedAt: v.optional(v.number()),
     createdBy: v.id("users"),
@@ -118,6 +120,14 @@ export default defineSchema({
       searchField: "title",
       filterFields: ["projectId", "assigneeId", "deletedAt"],
     }),
+
+  comments: defineTable({
+    cardId: v.id("cards"),
+    userId: v.id("users"),
+    content: v.string(),
+    createdAt: v.number(),
+    deletedAt: v.optional(v.number()),
+  }).index("by_card", ["cardId"]),
 
   // Activity log
   activity: defineTable({

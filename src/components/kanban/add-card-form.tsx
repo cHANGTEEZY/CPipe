@@ -16,9 +16,14 @@ interface AddCardFormProps {
   onClose: () => void;
 }
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Flag, Activity as ActivityIcon } from "lucide-react";
+
 export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) {
   const [title, setTitle] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [status, setStatus] = useState<string>("on_track");
+  const [priority, setPriority] = useState<string>("medium");
   const [loading, setLoading] = useState(false);
   const createCard = useMutation(api.cards.create);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,6 +44,8 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
         labels: [],
         startDate: dateRange?.from ? dateRange.from.getTime() : undefined,
         dueDate: dateRange?.to ? dateRange.to.getTime() : undefined,
+        status: status as any,
+        priority: priority as any,
       });
       setTitle("");
       setDateRange(undefined);
@@ -63,6 +70,36 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
         }}
       />
       
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1 tracking-wider">Status</label>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="h-8 text-[11px] bg-muted/20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="on_track">On Track</SelectItem>
+              <SelectItem value="at_risk">At Risk</SelectItem>
+              <SelectItem value="off_track">Off Track</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1 tracking-wider">Priority</label>
+          <Select value={priority} onValueChange={setPriority}>
+            <SelectTrigger className="h-8 text-[11px] bg-muted/20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="urgent">Urgent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="space-y-1.5">
         <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1 tracking-wider">Timeline</label>
         <DateRangePicker 

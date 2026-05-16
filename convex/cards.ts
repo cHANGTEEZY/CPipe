@@ -70,8 +70,10 @@ export const create = mutation({
     points: v.optional(v.number()),
     startDate: v.optional(v.number()),
     dueDate: v.optional(v.number()),
+    status: v.optional(v.union(v.literal("on_track"), v.literal("at_risk"), v.literal("off_track"))),
+    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"))),
   },
-  handler: async (ctx, { columnId, projectId, title, description, assigneeId, labels, points, startDate, dueDate }) => {
+  handler: async (ctx, { columnId, projectId, title, description, assigneeId, labels, points, startDate, dueDate, status, priority }) => {
     const userId = await requireAuth(ctx);
     const existing = await ctx.db
       .query("cards")
@@ -92,6 +94,8 @@ export const create = mutation({
       points,
       startDate,
       dueDate,
+      status,
+      priority,
       order: maxOrder + 1,
       createdBy: userId,
       createdAt: Date.now(),
@@ -122,6 +126,8 @@ export const update = mutation({
     points: v.optional(v.number()),
     startDate: v.optional(v.union(v.number(), v.null())),
     dueDate: v.optional(v.union(v.number(), v.null())),
+    status: v.optional(v.union(v.literal("on_track"), v.literal("at_risk"), v.literal("off_track"), v.null())),
+    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"), v.null())),
   },
   handler: async (ctx, { cardId, ...patch }) => {
     const userId = await requireAuth(ctx);
@@ -158,6 +164,12 @@ export const update = mutation({
     }
     if (patchData.dueDate === null) {
       patchData.dueDate = undefined;
+    }
+    if (patchData.status === null) {
+      patchData.status = undefined;
+    }
+    if (patchData.priority === null) {
+      patchData.priority = undefined;
     }
 
     await ctx.db.patch(cardId, patchData);

@@ -7,7 +7,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { CardDetailModal } from "./card-detail-modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, GripVertical } from "lucide-react";
+import { Trash2, MessageSquare, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -18,6 +18,19 @@ const LABEL_COLORS: Record<string, string> = {
   backend: "bg-orange-500/15 text-orange-600",
   frontend: "bg-cyan-500/15 text-cyan-600",
   docs: "bg-green-500/15 text-green-600",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  on_track: "text-green-500",
+  at_risk: "text-yellow-500",
+  off_track: "text-red-500",
+};
+
+const PRIORITY_COLORS: Record<string, string> = {
+  low: "text-blue-400",
+  medium: "text-yellow-500",
+  high: "text-orange-500",
+  urgent: "text-red-600",
 };
 
 interface CardProps {
@@ -32,7 +45,7 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
   const [detailOpen, setDetailOpen] = useState(false);
   const removeCard = useMutation(api.cards.remove);
   
-  // Use members query to get assignee info
+  const comments = useQuery(api.comments.list, { cardId: card._id });
   const project = useQuery(api.projects.get, { projectId: card.projectId });
   const members = useQuery(api.members.list, project?.workspaceId ? { workspaceId: project.workspaceId } : "skip");
   const assigneeMember = members?.find((m: any) => m.userId === card.assigneeId);
@@ -95,16 +108,14 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
         )}
         onClick={() => setDetailOpen(true)}
       >
-
-
-        {/* Labels */}
-        {card.labels?.length > 0 && (
+        <div className="flex items-start justify-between gap-2">
+          {/* Labels */}
           <div className="flex flex-wrap gap-1">
-            {card.labels.map((label: string) => (
+            {card.labels?.map((label: string) => (
               <span
                 key={label}
                 className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize tracking-wide",
+                  "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider",
                   LABEL_COLORS[label.toLowerCase()] ?? "bg-secondary text-secondary-foreground"
                 )}
               >
@@ -112,37 +123,57 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
               </span>
             ))}
           </div>
-        )}
+          
+          <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+             {card.status && (
+               <div className={cn("size-2 rounded-full bg-current", STATUS_COLORS[card.status])} title={card.status.replace('_', ' ')} />
+             )}
+             {card.priority && (
+               <Flag className={cn("size-3", PRIORITY_COLORS[card.priority])} fill="currentColor" />
+             )}
+          </div>
+        </div>
 
         {/* Title */}
-        <p className="text-sm font-medium leading-snug transition-all duration-150">
+        <p className="text-sm font-medium leading-snug transition-all duration-150 line-clamp-2">
           {card.title}
         </p>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-2 mt-1">
+        <div className="flex items-center justify-between gap-2 mt-1 pt-1 border-t border-transparent group-hover:border-muted/50 transition-colors">
           <div className="flex items-center gap-2">
             {card.points != null && (
-              <Badge variant="secondary" className="h-5 text-[10px] px-1.5 font-medium">
-                {card.points} pts
+              <Badge variant="secondary" className="h-5 text-[10px] px-1.5 font-bold tabular-nums">
+                {card.points}
               </Badge>
             )}
-            {card.assigneeId && (
-              <div className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary ring-1 ring-primary/20">
-                {assignee?.name?.[0]?.toUpperCase() ?? "?"}
+            
+            {comments && comments.length > 0 && (
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-bold">
+                <MessageSquare className="size-3" />
+                {comments.length}
               </div>
             )}
           </div>
-          {canDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-6 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10"
-              onClick={handleDelete}
-            >
-              <Trash2 className="size-3.5" />
-            </Button>
-          )}
+
+          <div className="flex items-center gap-2">
+            {card.assigneeId && (
+              <div className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary ring-1 ring-primary/20 shadow-sm" title={assigneeMember?.user?.profile?.displayName || assignee?.name}>
+                {(assigneeMember?.user?.profile?.displayName?.[0] ?? assignee?.name?.[0] ?? "?").toUpperCase()}
+              </div>
+            )}
+            
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10"
+                onClick={handleDelete}
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
