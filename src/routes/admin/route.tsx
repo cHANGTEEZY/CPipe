@@ -33,7 +33,6 @@ function AdminLayout() {
   const navItems = [
     { title: "Dashboard", icon: LayoutDashboard, to: "/admin" },
     { title: "Users", icon: Users, to: "/admin/users" },
-    { title: "Profile", icon: User, to: "/admin/profile" },
   ];
 
   async function handleSignOut() {

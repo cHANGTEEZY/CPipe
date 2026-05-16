@@ -32,7 +32,18 @@ async function requireMember(ctx: any, workspaceId: any, minRole?: string) {
 export const list = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, { workspaceId }) => {
-    await requireAuth(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+    
+    const member = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_user", (q: any) =>
+        q.eq("workspaceId", workspaceId).eq("userId", userId)
+      )
+      .unique();
+      
+    if (!member) return [];
+
     const projects = await ctx.db
       .query("projects")
       .withIndex("by_workspace", (q: any) =>
@@ -47,8 +58,22 @@ export const list = query({
 export const get = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
-    await requireAuth(ctx);
-    return await ctx.db.get(projectId);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    
+    const project = await ctx.db.get(projectId);
+    if (!project) return null;
+
+    const member = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_user", (q: any) =>
+        q.eq("workspaceId", project.workspaceId).eq("userId", userId)
+      )
+      .unique();
+      
+    if (!member) throw new Error("Not a member of this workspace");
+    
+    return project;
   },
 });
 

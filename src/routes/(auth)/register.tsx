@@ -49,8 +49,21 @@ function RegisterPage() {
     setLoading(true)
     try {
       await signIn("password", { email, password, name: fullName, flow: "signUp" })
-      // Set user profile to pending after signup
-      await initPending({ firstName, lastName })
+      
+      // Wait briefly for the Convex WebSocket to re-authenticate with the new session cookie
+      // to avoid "Not authenticated" error from the backend.
+      try {
+        await new Promise(r => setTimeout(r, 500));
+        await initPending({ firstName, lastName })
+      } catch (err: any) {
+        if (err.message.includes("Not authenticated")) {
+          await new Promise(r => setTimeout(r, 1000));
+          await initPending({ firstName, lastName })
+        } else {
+          throw err;
+        }
+      }
+
       toast.success("Account created! Awaiting admin approval.")
       navigate({ to: "/pending" })
     } catch (err: any) {

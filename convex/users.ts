@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 async function requireAuth(ctx: any) {
@@ -87,6 +88,15 @@ export const initNewUser = mutation({
         status: "pending",
       });
     }
+
+    const user = await ctx.db.get(userId);
+    if (user && user.email) {
+      await ctx.scheduler.runAfter(0, internal.emails.sendStatusEmail, {
+        email: user.email,
+        name: displayName || user.name || "User",
+        status: "pending",
+      });
+    }
   },
 });
 
@@ -135,6 +145,17 @@ export const updateStatus = mutation({
     } else {
       await ctx.db.insert("userProfiles", { userId, ...patch });
     }
+
+    const user = await ctx.db.get(userId);
+    if (user && user.email) {
+      const name = existing?.displayName || user.name || "User";
+      await ctx.scheduler.runAfter(0, internal.emails.sendStatusEmail, {
+        email: user.email,
+        name,
+        status,
+        reason: rejectionReason,
+      });
+    }
   },
 });
 
@@ -156,6 +177,24 @@ export const deleteUser = mutation({
     for (const m of memberships) {
       await ctx.db.delete(m._id);
     }
+    
+    // Clean up auth accounts and sessions
+    const authAccounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userId", (q: any) => q.eq("userId", userId))
+      .collect();
+    for (const a of authAccounts) {
+      await ctx.db.delete(a._id);
+    }
+    
+    const authSessions = await ctx.db
+      .query("authSessions")
+      .withIndex("userId", (q: any) => q.eq("userId", userId))
+      .collect();
+    for (const s of authSessions) {
+      await ctx.db.delete(s._id);
+    }
+
     await ctx.db.delete(userId);
   },
 });
@@ -179,4 +218,45 @@ export const bootstrapSuperAdmin = mutation({
       await ctx.db.insert("userProfiles", { userId, superAdmin: true, status: "approved" });
     }
   },
+});
+
+export const makeSuperAdminByEmail = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    // Convex auth stores email in users table by default when using email/password
+    const users = await ctx.db.query("users").collect();
+    const user = users.find((u: any) => u.email === email);
+    if (!user) throw new Error("User not found: " + email);
+    
+    const existing = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
+      .unique();
+      
+    if (existing) {
+      await ctx.db.patch(existing._id, { superAdmin: true, status: "approved", firstName: "Super", lastName: "Admin", displayName: "Super Admin" });
+    } else {
+      await ctx.db.insert("userProfiles", { userId: user._id, superAdmin: true, status: "approved", firstName: "Super", lastName: "Admin", displayName: "Super Admin" });
+    }
+  }
+});
+
+export const cleanOrphanedAccounts = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const accounts = await ctx.db.query("authAccounts").collect();
+    for (const acc of accounts) {
+      const user = await ctx.db.get(acc.userId);
+      if (!user) {
+        await ctx.db.delete(acc._id);
+      }
+    }
+    const sessions = await ctx.db.query("authSessions").collect();
+    for (const sess of sessions) {
+      const user = await ctx.db.get(sess.userId);
+      if (!user) {
+        await ctx.db.delete(sess._id);
+      }
+    }
+  }
 });

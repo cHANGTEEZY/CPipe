@@ -1,10 +1,9 @@
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { Loader2, Clock, CheckCircle, XCircle, ShieldOff, Ban } from "lucide-react";
+import { Loader2, Clock, XCircle, ShieldOff, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/(auth)/pending")({
   component: PendingPage,
@@ -24,7 +23,10 @@ function PendingPage() {
   }
 
   // If approved, redirect to app
-  if (me?.profile?.status === "approved" || (!me?.profile?.status && me?.profile?.superAdmin)) {
+  if (
+    me?.profile?.status === "approved" ||
+    (!me?.profile?.status && me?.profile?.superAdmin)
+  ) {
     return <Navigate to="/" replace />;
   }
 
@@ -76,12 +78,16 @@ function PendingPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <div className="text-center max-w-md space-y-6">
-        <div className={`flex size-20 items-center justify-center rounded-full ${cfg.bgClass} mx-auto`}>
+        <div
+          className={`flex size-20 items-center justify-center rounded-full ${cfg.bgClass} mx-auto`}
+        >
           <Icon className={`size-10 ${cfg.iconClass}`} />
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">{cfg.title}</h1>
-          <p className="text-muted-foreground text-sm leading-relaxed">{cfg.message}</p>
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            {cfg.message}
+          </p>
         </div>
         <div className="space-y-2">
           <Button onClick={handleSignOut} variant="outline" className="w-full">
