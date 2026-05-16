@@ -68,8 +68,10 @@ export const create = mutation({
     assigneeId: v.optional(v.id("users")),
     labels: v.optional(v.array(v.string())),
     points: v.optional(v.number()),
+    startDate: v.optional(v.number()),
+    dueDate: v.optional(v.number()),
   },
-  handler: async (ctx, { columnId, projectId, title, description, assigneeId, labels, points }) => {
+  handler: async (ctx, { columnId, projectId, title, description, assigneeId, labels, points, startDate, dueDate }) => {
     const userId = await requireAuth(ctx);
     const existing = await ctx.db
       .query("cards")
@@ -88,11 +90,16 @@ export const create = mutation({
       assigneeId,
       labels: labels ?? [],
       points,
+      startDate,
+      dueDate,
       order: maxOrder + 1,
       createdBy: userId,
       createdAt: Date.now(),
     });
+    const project = await ctx.db.get(projectId);
     await ctx.db.insert("activity", {
+      workspaceId: project!.workspaceId,
+      projectId: project!._id,
       entityType: "card",
       entityId: cardId,
       userId,
@@ -113,6 +120,8 @@ export const update = mutation({
     assigneeId: v.optional(v.union(v.id("users"), v.null())),
     labels: v.optional(v.array(v.string())),
     points: v.optional(v.number()),
+    startDate: v.optional(v.union(v.number(), v.null())),
+    dueDate: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, { cardId, ...patch }) => {
     const userId = await requireAuth(ctx);
@@ -142,11 +151,20 @@ export const update = mutation({
     // Convert null to undefined for Convex patch if needed, but Convex supports null to clear optional fields if using v.optional(v.union(v.id("users"), v.null())). Wait, `patch.assigneeId` can be null.
     const patchData: any = { ...patch };
     if (patchData.assigneeId === null) {
-      patchData.assigneeId = undefined; // convex handles optional clearing with undefined in patch
+      patchData.assigneeId = undefined; 
+    }
+    if (patchData.startDate === null) {
+      patchData.startDate = undefined;
+    }
+    if (patchData.dueDate === null) {
+      patchData.dueDate = undefined;
     }
 
     await ctx.db.patch(cardId, patchData);
+    const project = await ctx.db.get(existing.projectId);
     await ctx.db.insert("activity", {
+      workspaceId: project!.workspaceId,
+      projectId: project!._id,
       entityType: "card",
       entityId: cardId,
       userId,
@@ -170,7 +188,10 @@ export const move = mutation({
     if (!card) throw new Error("Card not found");
     const fromColumnId = card.columnId;
     await ctx.db.patch(cardId, { columnId: toColumnId, order: newOrder });
+    const project = await ctx.db.get(card.projectId);
     await ctx.db.insert("activity", {
+      workspaceId: project!.workspaceId,
+      projectId: project!._id,
       entityType: "card",
       entityId: cardId,
       userId,
@@ -201,7 +222,11 @@ export const remove = mutation({
   handler: async (ctx, { cardId }) => {
     const userId = await requireAuth(ctx);
     await ctx.db.patch(cardId, { deletedAt: Date.now() });
+    const card = await ctx.db.get(cardId);
+    const project = await ctx.db.get(card!.projectId);
     await ctx.db.insert("activity", {
+      workspaceId: project!.workspaceId,
+      projectId: project!._id,
       entityType: "card",
       entityId: cardId,
       userId,

@@ -100,13 +100,24 @@ export const acceptInvite = mutation({
     if (invite.acceptedAt) throw new Error("Invite already used");
     if (invite.expiresAt < Date.now()) throw new Error("Invite expired");
 
-    await ctx.db.insert("members", {
+    const memberId = await ctx.db.insert("members", {
       workspaceId: invite.workspaceId,
       userId,
       role: invite.role,
       joinedAt: Date.now(),
     });
     await ctx.db.patch(invite._id, { acceptedAt: Date.now() });
+    
+    await ctx.db.insert("activity", {
+      workspaceId: invite.workspaceId,
+      entityType: "member",
+      entityId: memberId,
+      userId,
+      action: "joined",
+      meta: { role: invite.role },
+      createdAt: Date.now(),
+    });
+    
     return invite.workspaceId;
   },
 });
@@ -125,7 +136,18 @@ export const updateRole = mutation({
     const member = await ctx.db.get(memberId);
     if (!member) throw new Error("Member not found");
     await requireMember(ctx, member.workspaceId, "admin");
+    const userId = await requireAuth(ctx);
     await ctx.db.patch(memberId, { role });
+    
+    await ctx.db.insert("activity", {
+      workspaceId: member.workspaceId,
+      entityType: "member",
+      entityId: memberId,
+      userId,
+      action: "role_updated",
+      meta: { role },
+      createdAt: Date.now(),
+    });
   },
 });
 
@@ -136,6 +158,17 @@ export const remove = mutation({
     const member = await ctx.db.get(memberId);
     if (!member) throw new Error("Member not found");
     await requireMember(ctx, member.workspaceId, "admin");
+    const userId = await requireAuth(ctx);
     await ctx.db.delete(memberId);
+    
+    await ctx.db.insert("activity", {
+      workspaceId: member.workspaceId,
+      entityType: "member",
+      entityId: memberId,
+      userId,
+      action: "removed",
+      meta: { removedUserId: member.userId },
+      createdAt: Date.now(),
+    });
   },
 });

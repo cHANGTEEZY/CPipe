@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import type { DateRange } from "react-day-picker";
 
 const ALL_LABELS = ["bug", "feature", "design", "backend", "frontend", "docs"];
 
@@ -26,12 +28,17 @@ interface CardDetailModalProps {
   canWrite?: boolean;
 }
 
+
 export function CardDetailModal({ card, open, onClose, canWrite = true }: CardDetailModalProps) {
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description ?? "");
   const [points, setPoints] = useState(card.points?.toString() ?? "");
   const [labels, setLabels] = useState<string[]>(card.labels ?? []);
   const [assigneeId, setAssigneeId] = useState<string>(card.assigneeId ?? "unassigned");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: card.startDate ? new Date(card.startDate) : undefined,
+    to: card.dueDate ? new Date(card.dueDate) : undefined,
+  });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -41,6 +48,10 @@ export function CardDetailModal({ card, open, onClose, canWrite = true }: CardDe
       setPoints(card.points?.toString() ?? "");
       setLabels(card.labels ?? []);
       setAssigneeId(card.assigneeId ?? "unassigned");
+      setDateRange({
+        from: card.startDate ? new Date(card.startDate) : undefined,
+        to: card.dueDate ? new Date(card.dueDate) : undefined,
+      });
     }
   }, [open, card]);
 
@@ -59,6 +70,8 @@ export function CardDetailModal({ card, open, onClose, canWrite = true }: CardDe
         labels,
         points: points ? Number(points) : undefined,
         assigneeId: assigneeId === "unassigned" ? null : (assigneeId as any),
+        startDate: dateRange?.from ? dateRange.from.getTime() : null,
+        dueDate: dateRange?.to ? dateRange.to.getTime() : null,
       });
       toast.success("Card updated");
     } catch (err: any) {
@@ -104,7 +117,7 @@ export function CardDetailModal({ card, open, onClose, canWrite = true }: CardDe
                 {members?.map((m: any) => (
                   <SelectItem key={m.userId} value={m.userId}>
                     <span className="block truncate max-w-[200px] sm:max-w-[300px]">
-                      {m.user?.name || m.user?.email || "Unknown User"}
+                      {m.user?.profile?.displayName || m.user?.name || m.user?.email || "Unknown User"}
                     </span>
                   </SelectItem>
                 ))}
@@ -125,6 +138,18 @@ export function CardDetailModal({ card, open, onClose, canWrite = true }: CardDe
               disabled={!canWrite}
               placeholder="0"
               className="w-28"
+            />
+          </div>
+
+          {/* Timeline Dates */}
+          <div className="grid grid-cols-[120px_minmax(0,1fr)] items-center">
+            <Label className="text-muted-foreground flex items-center gap-2">
+               Timeline
+            </Label>
+            <DateRangePicker 
+              date={dateRange}
+              setDate={setDateRange}
+              className="w-full"
             />
           </div>
 
@@ -188,11 +213,14 @@ export function CardDetailModal({ card, open, onClose, canWrite = true }: CardDe
                   {activity.map((log: any) => (
                     <li key={log._id} className="flex gap-3 text-sm">
                       <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                        {log.user?.name?.[0]?.toUpperCase() ?? "?"}
+                        {log.user?.profile?.displayName?.[0]?.toUpperCase() ?? 
+                         log.user?.name?.[0]?.toUpperCase() ?? "?"}
                       </div>
                       <div className="flex-1 space-y-1">
                         <p>
-                          <span className="font-medium">{log.user?.name ?? "Someone"}</span>{" "}
+                          <span className="font-medium">
+                            {log.user?.profile?.displayName ?? log.user?.name ?? "Someone"}
+                          </span>{" "}
                           <span className="text-muted-foreground">{log.action} this card</span>
                         </p>
                         <p className="text-xs text-muted-foreground">

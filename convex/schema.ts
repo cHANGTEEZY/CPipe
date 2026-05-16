@@ -104,6 +104,8 @@ export default defineSchema({
     assigneeId: v.optional(v.id("users")),
     labels: v.array(v.string()),
     points: v.optional(v.number()),
+    startDate: v.optional(v.number()),
+    dueDate: v.optional(v.number()),
     order: v.number(),
     deletedAt: v.optional(v.number()),
     createdBy: v.id("users"),
@@ -119,11 +121,14 @@ export default defineSchema({
 
   // Activity log
   activity: defineTable({
+    workspaceId: v.optional(v.id("workspaces")),
+    projectId: v.optional(v.id("projects")),
     entityType: v.union(
       v.literal("card"),
       v.literal("project"),
       v.literal("column"),
-      v.literal("workspace")
+      v.literal("workspace"),
+      v.literal("member")
     ),
     entityId: v.string(),
     userId: v.id("users"),
@@ -131,6 +136,8 @@ export default defineSchema({
     meta: v.optional(v.any()),
     createdAt: v.number(),
   })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_project", ["projectId"])
     .index("by_entity", ["entityId"])
     .index("by_user", ["userId"]),
 });

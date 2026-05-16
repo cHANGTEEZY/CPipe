@@ -38,13 +38,26 @@ export const create = mutation({
       (max: number, c: any) => Math.max(max, c.order),
       -1
     );
-    return await ctx.db.insert("columns", {
+    const columnId = await ctx.db.insert("columns", {
       projectId,
       name,
       color,
       order: maxOrder + 1,
       createdAt: Date.now(),
     });
+    const project = await ctx.db.get(projectId);
+    const userId = await requireAuth(ctx);
+    await ctx.db.insert("activity", {
+      workspaceId: project!.workspaceId,
+      projectId: project!._id,
+      entityType: "column",
+      entityId: columnId,
+      userId,
+      action: "created",
+      meta: { name },
+      createdAt: Date.now(),
+    });
+    return columnId;
   },
 });
 
@@ -52,8 +65,20 @@ export const create = mutation({
 export const rename = mutation({
   args: { columnId: v.id("columns"), name: v.string() },
   handler: async (ctx, { columnId, name }) => {
-    await requireAuth(ctx);
+    const userId = await requireAuth(ctx);
     await ctx.db.patch(columnId, { name });
+    const col = await ctx.db.get(columnId);
+    const project = await ctx.db.get(col!.projectId);
+    await ctx.db.insert("activity", {
+      workspaceId: project!.workspaceId,
+      projectId: project!._id,
+      entityType: "column",
+      entityId: columnId,
+      userId,
+      action: "updated",
+      meta: { name },
+      createdAt: Date.now(),
+    });
   },
 });
 
@@ -75,7 +100,9 @@ export const reorder = mutation({
 export const remove = mutation({
   args: { columnId: v.id("columns") },
   handler: async (ctx, { columnId }) => {
-    await requireAuth(ctx);
+    const userId = await requireAuth(ctx);
+    const col = await ctx.db.get(columnId);
+    const project = await ctx.db.get(col!.projectId);
     // Also soft-delete all cards in this column
     const cards = await ctx.db
       .query("cards")
@@ -85,5 +112,14 @@ export const remove = mutation({
       cards.map((c: any) => ctx.db.patch(c._id, { deletedAt: Date.now() }))
     );
     await ctx.db.delete(columnId);
+    await ctx.db.insert("activity", {
+      workspaceId: project!.workspaceId,
+      projectId: project!._id,
+      entityType: "column",
+      entityId: columnId,
+      userId,
+      action: "deleted",
+      createdAt: Date.now(),
+    });
   },
 });

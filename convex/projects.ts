@@ -105,6 +105,16 @@ export const create = mutation({
         createdAt: Date.now(),
       });
     }
+    await ctx.db.insert("activity", {
+      workspaceId,
+      projectId,
+      entityType: "project",
+      entityId: projectId,
+      userId,
+      action: "created",
+      meta: { name },
+      createdAt: Date.now(),
+    });
     return projectId;
   },
 });
@@ -121,7 +131,18 @@ export const update = mutation({
     const project = await ctx.db.get(projectId);
     if (!project) throw new Error("Project not found");
     await requireMember(ctx, project.workspaceId, "editor");
+    const userId = await requireAuth(ctx);
     await ctx.db.patch(projectId, patch);
+    await ctx.db.insert("activity", {
+      workspaceId: project.workspaceId,
+      projectId,
+      entityType: "project",
+      entityId: projectId,
+      userId,
+      action: "updated",
+      meta: patch,
+      createdAt: Date.now(),
+    });
   },
 });
 
@@ -132,6 +153,16 @@ export const remove = mutation({
     const project = await ctx.db.get(projectId);
     if (!project) throw new Error("Project not found");
     await requireMember(ctx, project.workspaceId, "admin");
+    const userId = await requireAuth(ctx);
     await ctx.db.patch(projectId, { deletedAt: Date.now() });
+    await ctx.db.insert("activity", {
+      workspaceId: project.workspaceId,
+      projectId,
+      entityType: "project",
+      entityId: projectId,
+      userId,
+      action: "deleted",
+      createdAt: Date.now(),
+    });
   },
 });
