@@ -73,3 +73,41 @@ export const sendStatusEmail = internalAction({
     }
   },
 });
+
+export const sendTaskAssignedEmail = internalAction({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    taskTitle: v.string(),
+    projectName: v.string(),
+    assignedBy: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) return;
+    const resend = new Resend(resendApiKey);
+
+    try {
+      await resend.emails.send({
+        from: "CPipe Tracker <onboarding@resend.dev>",
+        to: args.email,
+        subject: `You've been assigned to a task: ${args.taskTitle}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Hello ${args.name},</h2>
+            <p><strong>${args.assignedBy}</strong> has assigned you to a new task in <strong>${args.projectName}</strong>.</p>
+            <div style="padding: 16px; background-color: #f4f4f5; border-radius: 8px; margin: 16px 0;">
+              <h3 style="margin: 0 0 8px 0;">${args.taskTitle}</h3>
+            </div>
+            <p>Log in to CPipe Tracker to view more details.</p>
+            <br/>
+            <p>Thanks,<br><strong>CPipe Tracker Team</strong></p>
+          </div>
+        `,
+      });
+      console.log(`Sent task assigned email to ${args.email}`);
+    } catch (error) {
+      console.error("Failed to send email:", error);
+    }
+  },
+});

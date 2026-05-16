@@ -11,7 +11,7 @@ import {
   useSensors,
   closestCorners,
 } from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, horizontalListSortingStrategy, rectSortingStrategy } from "@dnd-kit/sortable";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -19,6 +19,8 @@ import { KanbanColumn } from "./column";
 import { KanbanCard } from "./card";
 import { AddColumnForm } from "./add-column-form";
 import { Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface BoardProps {
   projectId: Id<"projects">;
@@ -33,11 +35,20 @@ export function KanbanBoard({ projectId }: BoardProps) {
 
   const [activeCard, setActiveCard] = useState<any>(null);
   const [activeCardData, setActiveCardData] = useState<any>(null);
+  const [layout, setLayout] = useState<"scroll" | "2" | "3" | "4">("scroll");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
+
+  const myMembership = useQuery(
+    api.members.getMyMembership,
+    project ? { workspaceId: project.workspaceId } : "skip"
+  );
+  
+  const canWrite = myMembership && ["owner", "admin", "editor"].includes(myMembership.role);
+  const canDelete = myMembership && ["owner", "admin"].includes(myMembership.role);
 
   if (project === undefined) {
     return (
@@ -56,6 +67,7 @@ export function KanbanBoard({ projectId }: BoardProps) {
   }
 
   function onDragStart(event: DragStartEvent) {
+    if (!canWrite) return;
     if (event.active.data.current?.type === "card") {
       setActiveCard(event.active.id);
       setActiveCardData(event.active.data.current.card);
@@ -65,6 +77,7 @@ export function KanbanBoard({ projectId }: BoardProps) {
   async function onDragEnd(event: DragEndEvent) {
     setActiveCard(null);
     setActiveCardData(null);
+    if (!canWrite) return;
     const { active, over } = event;
     if (!over) return;
 
@@ -112,13 +125,28 @@ export function KanbanBoard({ projectId }: BoardProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Board header */}
-      <div className="mb-4 flex items-center gap-3">
-        <h1 className="text-xl font-semibold">{project.name}</h1>
-        {project.pointsEnabled && (
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-            Points enabled
-          </span>
-        )}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold">{project.name}</h1>
+          {project.pointsEnabled && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              Points enabled
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Select value={layout} onValueChange={(val: any) => setLayout(val)}>
+            <SelectTrigger className="w-[180px] h-9 text-sm bg-background">
+              <SelectValue placeholder="Layout" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="scroll">Horizontal (Scroll)</SelectItem>
+              <SelectItem value="2">Grid (2 Columns)</SelectItem>
+              <SelectItem value="3">Grid (3 Columns)</SelectItem>
+              <SelectItem value="4">Grid (4 Columns)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Columns */}
@@ -129,18 +157,31 @@ export function KanbanBoard({ projectId }: BoardProps) {
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4 flex-1 items-start">
-          <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+        <div 
+          className={cn(
+            layout === "scroll" 
+              ? "flex gap-4 overflow-x-auto pb-4 flex-1 items-start"
+              : `grid gap-4 overflow-y-auto pb-4 flex-1 items-start ${
+                  layout === "2" ? "grid-cols-1 md:grid-cols-2" :
+                  layout === "3" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" :
+                  "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                }`
+          )}
+        >
+          <SortableContext items={columnIds} strategy={layout === "scroll" ? horizontalListSortingStrategy : rectSortingStrategy}>
             {columns.map((col: any) => (
               <KanbanColumn
                 key={col._id}
                 column={col}
                 projectId={projectId}
                 pointsEnabled={project.pointsEnabled}
+                canWrite={!!canWrite}
+                canDelete={!!canDelete}
+                isGrid={layout !== "scroll"}
               />
             ))}
           </SortableContext>
-          <AddColumnForm projectId={projectId} />
+          {canWrite && <AddColumnForm projectId={projectId} />}
         </div>
 
         <DragOverlay>

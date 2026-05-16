@@ -110,19 +110,48 @@ export const update = mutation({
     cardId: v.id("cards"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
-    assigneeId: v.optional(v.id("users")),
+    assigneeId: v.optional(v.union(v.id("users"), v.null())),
     labels: v.optional(v.array(v.string())),
     points: v.optional(v.number()),
   },
   handler: async (ctx, { cardId, ...patch }) => {
     const userId = await requireAuth(ctx);
-    await ctx.db.patch(cardId, patch);
+    const existing = await ctx.db.get(cardId);
+    if (!existing) throw new Error("Card not found");
+
+    // Send email if assigned to a new user
+    if (patch.assigneeId !== undefined && patch.assigneeId !== existing.assigneeId && patch.assigneeId !== null) {
+      const assignedUser = await ctx.db.get(patch.assigneeId);
+      const assigner = await ctx.db.get(userId);
+      const project = await ctx.db.get(existing.projectId);
+      
+      if (assignedUser && assignedUser.email && project) {
+        const assignerProfile = await ctx.db.query("userProfiles").withIndex("by_userId", (q: any) => q.eq("userId", userId)).unique();
+        const assigneeProfile = await ctx.db.query("userProfiles").withIndex("by_userId", (q: any) => q.eq("userId", assignedUser._id)).unique();
+        
+        await ctx.scheduler.runAfter(0, internal.emails.sendTaskAssignedEmail, {
+          email: assignedUser.email,
+          name: assigneeProfile?.displayName || assignedUser.name || "User",
+          taskTitle: patch.title ?? existing.title,
+          projectName: project.name,
+          assignedBy: assignerProfile?.displayName || assigner?.name || "Someone",
+        });
+      }
+    }
+
+    // Convert null to undefined for Convex patch if needed, but Convex supports null to clear optional fields if using v.optional(v.union(v.id("users"), v.null())). Wait, `patch.assigneeId` can be null.
+    const patchData: any = { ...patch };
+    if (patchData.assigneeId === null) {
+      patchData.assigneeId = undefined; // convex handles optional clearing with undefined in patch
+    }
+
+    await ctx.db.patch(cardId, patchData);
     await ctx.db.insert("activity", {
       entityType: "card",
       entityId: cardId,
       userId,
       action: "updated",
-      meta: patch,
+      meta: patchData,
       createdAt: Date.now(),
     });
   },
