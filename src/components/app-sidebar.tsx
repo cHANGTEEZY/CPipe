@@ -61,7 +61,6 @@ export function AppSidebar() {
 
   const globalLinks = [
     { title: "Members", icon: Users, to: "/settings/members" },
-    { title: "Profile", icon: User, to: "/profile" },
     { title: "Activity", icon: Activity, to: "/activity" },
   ];
 

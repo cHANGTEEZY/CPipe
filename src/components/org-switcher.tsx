@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useAppStore } from "@/store/app-store";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,7 +28,8 @@ import type { Id } from "@convex/_generated/dataModel";
 export function OrgSwitcher() {
   const workspaces = useQuery(api.workspaces.list) ?? [];
   const createWorkspace = useMutation(api.workspaces.create);
-  const { activeWorkspaceId, setActiveWorkspace } = useAppStore();
+  const { activeWorkspaceId, setActiveWorkspace, setActiveProject } = useAppStore();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -82,7 +84,11 @@ export function OrgSwitcher() {
             <DropdownMenuItem
               key={ws._id}
               onSelect={() => {
-                setActiveWorkspace(ws._id);
+                if (ws._id !== activeWorkspaceId) {
+                  setActiveWorkspace(ws._id);
+                  setActiveProject(null);
+                  navigate({ to: "/" });
+                }
                 setOpen(false);
               }}
               className="gap-2"
