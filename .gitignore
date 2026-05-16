@@ -25,3 +25,10 @@ dist-ssr
 
 # TanStack Router generated
 src/routeTree.gen.ts
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
