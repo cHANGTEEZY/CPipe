@@ -111,17 +111,24 @@ export function KanbanBoard({ projectId }: BoardProps) {
     const overType = over.data.current?.type;
 
     // Column reorder
-    if (activeType === "column" && overType === "column") {
-      const oldIndex = columns.findIndex((c: any) => c._id === active.id);
-      const newIndex = columns.findIndex((c: any) => c._id === over.id);
-      if (oldIndex !== newIndex) {
-        const reordered = [...columns];
-        const [removed] = reordered.splice(oldIndex, 1);
-        reordered.splice(newIndex, 0, removed);
-        await reorderColumns({
-          projectId,
-          orderedIds: reordered.map((c: any) => c._id),
-        });
+    if (activeType === "column") {
+      const overColumnId = overType === "column" 
+        ? over.id 
+        : over.data.current?.columnId;
+      
+      if (overColumnId && active.id !== overColumnId) {
+        const oldIndex = columns.findIndex((c: any) => c._id === active.id);
+        const newIndex = columns.findIndex((c: any) => c._id === overColumnId);
+        
+        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+          const reordered = [...columns];
+          const [removed] = reordered.splice(oldIndex, 1);
+          reordered.splice(newIndex, 0, removed);
+          await reorderColumns({
+            projectId,
+            orderedIds: reordered.map((c: any) => c._id),
+          });
+        }
       }
       return;
     }
@@ -225,18 +232,16 @@ export function KanbanBoard({ projectId }: BoardProps) {
 
         <DragOverlay adjustScale={false} dropAnimation={null}>
           {activeCardData && (
-            <div 
-              style={{ width: "320px", transform: "scale(1)", transformOrigin: "0 0" }} 
-              className="pointer-events-none select-none"
+            <div
+              style={{ width: "320px" }}
+              className="pointer-events-none select-none shadow-xl"
             >
-              <div className="shadow-2xl rounded-lg overflow-hidden bg-card border-2 border-primary/20">
-                <KanbanCard 
-                  card={activeCardData} 
-                  isDragging 
-                  canWrite={false} 
-                  canDelete={false} 
-                />
-              </div>
+              <KanbanCard
+                card={activeCardData}
+                isDragging
+                canWrite={false}
+                canDelete={false}
+              />
             </div>
           )}
           {activeColumnData && (

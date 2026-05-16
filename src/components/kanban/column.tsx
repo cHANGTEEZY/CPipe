@@ -87,17 +87,19 @@ export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDe
     }
   }
 
-  const isDropTarget = !isDragging && (over?.id === column._id || over?.data?.current?.columnId === column._id);
+  const isCardOver = active?.data.current?.type === "card" && (over?.id === column._id || over?.data?.current?.columnId === column._id);
+  const isColumnOver = active?.data.current?.type === "column" && over?.id === column._id;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex shrink-0 flex-col rounded-xl border bg-muted/30 backdrop-blur-sm max-h-full transition-colors duration-200",
+        "flex shrink-0 flex-col rounded-xl border bg-muted/30 backdrop-blur-sm max-h-full transition-all duration-200",
         isGrid && !isDraggingOverlay ? "w-full" : "w-[320px] max-w-full",
-        isDragging && "opacity-40 ring-2 ring-primary",
-        isDropTarget && "border-primary/70 bg-primary/5 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
+        isDragging && "opacity-20 scale-[0.98] border-dashed",
+        isCardOver && !isDragging && "border-primary/70 bg-primary/5 shadow-[0_0_15px_rgba(var(--primary),0.1)]",
+        isColumnOver && !isDragging && "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[1.01] shadow-xl z-10"
       )}
     >
       {/* Column header */}
@@ -175,10 +177,6 @@ export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDe
           {cards.map((card: any) => (
             <KanbanCard key={card._id} card={card} columnId={column._id} canWrite={canWrite} canDelete={canDelete} />
           ))}
-          {/* Inject placeholder if this column is the active drop target for a card from another column */}
-          {isDropTarget && active?.data?.current?.type === "card" && active?.data?.current?.columnId !== column._id && (
-            <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 h-[100px] w-full animate-pulse transition-all duration-200" />
-          )}
         </SortableContext>
       </div>
 

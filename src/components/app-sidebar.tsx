@@ -172,32 +172,6 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      {/* ── Footer: User + Theme + Sign out ── */}
-      <SidebarFooter>
-        <div className="flex items-center gap-2 px-3 py-2">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
-            {me?.profile?.displayName?.[0]?.toUpperCase() ??
-              me?.name?.[0]?.toUpperCase() ??
-              "?"}
-          </div>
-          <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-            <p className="text-sm font-medium truncate">
-              {me?.profile?.displayName ?? me?.name ?? "You"}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">{me?.email}</p>
-          </div>
-          <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
-            <ThemeToggle />
-            <SidebarMenuButton
-              tooltip="Sign out"
-              onClick={handleSignOut}
-              className="size-8 p-0"
-            >
-              <LogOut className="size-4" />
-            </SidebarMenuButton>
-          </div>
-        </div>
-      </SidebarFooter>
     </Sidebar>
   );
 }

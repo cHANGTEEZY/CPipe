@@ -40,7 +40,11 @@ export const list = query({
     const withUsers = await Promise.all(
       members.map(async (m: any) => {
         const user = await ctx.db.get(m.userId);
-        return { ...m, user };
+        const profile = await ctx.db
+          .query("userProfiles")
+          .withIndex("by_userId", (q: any) => q.eq("userId", m.userId))
+          .unique();
+        return { ...m, user: { ...user, profile } };
       })
     );
     return withUsers;

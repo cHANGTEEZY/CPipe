@@ -137,7 +137,10 @@ export function CardDetailModal({
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent className="w-full sm:max-w-[600px] overflow-y-auto p-0 flex flex-col gap-0">
+      <SheetContent 
+        className="w-full sm:max-w-[600px] overflow-y-auto p-0 flex flex-col gap-0"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="p-6 pb-0">
           <SheetHeader className="mb-6">
             <SheetTitle>

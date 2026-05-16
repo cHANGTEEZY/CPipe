@@ -33,6 +33,13 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: "text-red-600",
 };
 
+const PRIORITY_BG_COLORS: Record<string, string> = {
+  low: "bg-blue-500/[0.03] border-blue-500/10 hover:bg-blue-500/[0.06] hover:border-blue-500/20",
+  medium: "bg-yellow-500/[0.03] border-yellow-500/10 hover:bg-yellow-500/[0.06] hover:border-yellow-500/20",
+  high: "bg-orange-500/[0.03] border-orange-500/10 hover:bg-orange-500/[0.06] hover:border-orange-500/20",
+  urgent: "bg-red-500/[0.03] border-red-500/10 hover:bg-red-500/[0.06] hover:border-red-500/20",
+};
+
 interface CardProps {
   card: any;
   columnId?: Id<"columns">;
@@ -48,8 +55,10 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
   const comments = useQuery(api.comments.list, { cardId: card._id });
   const project = useQuery(api.projects.get, { projectId: card.projectId });
   const members = useQuery(api.members.list, project?.workspaceId ? { workspaceId: project.workspaceId } : "skip");
+  const fallbackAssignee = useQuery(api.users.getById, card.assigneeId ? { userId: card.assigneeId } : "skip");
+  
   const assigneeMember = members?.find((m: any) => m.userId === card.assigneeId);
-  const assignee = assigneeMember?.user;
+  const assignee = assigneeMember?.user || fallbackAssignee;
 
   const {
     attributes,
@@ -84,16 +93,6 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
 
   const isHoveredDropzone = over?.id === card._id && !isSortableDragging;
 
-  if (isSortableDragging) {
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 h-[100px] w-full animate-pulse transition-all duration-200"
-      />
-    );
-  }
-
   return (
     <>
       <div
@@ -102,11 +101,12 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
         {...attributes}
         {...listeners}
         className={cn(
-          "group relative flex flex-col gap-2 rounded-lg border bg-card p-3 shadow-sm select-none w-full max-w-[calc(100vw-2rem)] sm:max-w-[320px]",
+          "group relative flex flex-col gap-2 rounded-lg border p-3 shadow-sm select-none w-full transition-all duration-150",
+          card.priority ? PRIORITY_BG_COLORS[card.priority] : "bg-card hover:bg-accent/50 hover:border-primary/40",
           canWrite ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
-          "hover:border-primary/40 hover:shadow-md hover:bg-accent/50 transition-all duration-150",
-          isDragging && "opacity-50 ring-2 ring-primary shadow-lg cursor-grabbing",
-          isHoveredDropzone && "border-primary bg-primary/5 ring-2 ring-primary/30 -translate-y-1 shadow-md"
+          isSortableDragging && "opacity-40 scale-[0.98] shadow-none",
+          isDragging && "opacity-90 ring-2 ring-primary shadow-lg cursor-grabbing",
+          isHoveredDropzone && "border-primary bg-primary/5 ring-2 ring-primary/30 shadow-md"
         )}
         onClick={() => setDetailOpen(true)}
       >
@@ -141,8 +141,7 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
           {card.title}
         </p>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between gap-2 mt-1 pt-1 border-t border-transparent group-hover:border-muted/50 transition-colors">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {card.points != null && (
               <Badge variant="secondary" className="h-5 text-[10px] px-1.5 font-bold tabular-nums">
@@ -160,8 +159,15 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
 
           <div className="flex items-center gap-2">
             {card.assigneeId && (
-              <div className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary ring-1 ring-primary/20 shadow-sm" title={assigneeMember?.user?.profile?.displayName || assignee?.name}>
-                {(assigneeMember?.user?.profile?.displayName?.[0] ?? assignee?.name?.[0] ?? "?").toUpperCase()}
+              <div 
+                className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary ring-1 ring-primary/20 shadow-sm overflow-hidden" 
+                title={assignee?.profile?.displayName || assignee?.name || "Unassigned"}
+              >
+                {assignee?.profile?.avatarUrl ? (
+                  <img src={assignee.profile.avatarUrl} alt="" className="size-full object-cover" />
+                ) : (
+                  (assignee?.profile?.displayName?.[0] ?? assignee?.name?.[0] ?? "?").toUpperCase()
+                )}
               </div>
             )}
             

@@ -19,6 +19,20 @@ async function requireSuperAdmin(ctx: any) {
   return userId;
 }
 
+/** Get user by ID with profile */
+export const getById = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    const profile = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (q: any) => q.eq("userId", userId))
+      .unique();
+    return { ...user, profile };
+  },
+});
+
 /** Get current user profile */
 export const getMe = query({
   args: {},
