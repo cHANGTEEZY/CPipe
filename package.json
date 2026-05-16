@@ -8,7 +8,8 @@
     "build": "tsr generate && tsc -b && vite build",
     "generate": "tsr generate",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -78,6 +79,7 @@
     "shadcn": "^4.7.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "wrangler": "^4.92.0"
   }
 }
