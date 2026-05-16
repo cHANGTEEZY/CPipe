@@ -1,7 +1,4 @@
-import { useState, useCallback } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,11 +16,10 @@ import { cn } from "@/lib/utils";
 const ALL_LABELS = ["bug", "feature", "design", "backend", "frontend", "docs"];
 
 interface SearchFilterBarProps {
-  projectId: Id<"projects">;
   onFilter: (q: string, labels: string[]) => void;
 }
 
-export function SearchFilterBar({ projectId, onFilter }: SearchFilterBarProps) {
+export function SearchFilterBar({ onFilter }: SearchFilterBarProps) {
   const [query, setQuery] = useState("");
   const [activeLabels, setActiveLabels] = useState<string[]>([]);
 

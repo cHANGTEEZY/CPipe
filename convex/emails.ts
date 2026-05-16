@@ -9,7 +9,7 @@ export const sendStatusEmail = internalAction({
     status: v.string(),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const resendApiKey = process.env.RESEND_API_KEY;
     if (!resendApiKey) {
       console.warn("RESEND_API_KEY is not set. Email not sent.");
@@ -82,7 +82,7 @@ export const sendTaskAssignedEmail = internalAction({
     projectName: v.string(),
     assignedBy: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const resendApiKey = process.env.RESEND_API_KEY;
     if (!resendApiKey) return;
     const resend = new Resend(resendApiKey);

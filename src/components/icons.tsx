@@ -12,25 +12,25 @@ import type { SVGProps } from "react";
 type IconProps = SVGProps<SVGSVGElement>;
 
 export function HomeIcon(props: IconProps) {
-  return <HugeiconsIcon icon={HomeHugeIcon} {...props} />;
+  return <HugeiconsIcon icon={HomeHugeIcon} {...(props as any)} />;
 }
 
 export function DashboardIcon(props: IconProps) {
-  return <HugeiconsIcon icon={DashboardHugeIcon} {...props} />;
+  return <HugeiconsIcon icon={DashboardHugeIcon} {...(props as any)} />;
 }
 
 export function ShieldIcon(props: IconProps) {
-  return <HugeiconsIcon icon={ShieldHugeIcon} {...props} />;
+  return <HugeiconsIcon icon={ShieldHugeIcon} {...(props as any)} />;
 }
 
 export function SettingsIcon(props: IconProps) {
-  return <HugeiconsIcon icon={SettingsHugeIcon} {...props} />;
+  return <HugeiconsIcon icon={SettingsHugeIcon} {...(props as any)} />;
 }
 
 export function UsersIcon(props: IconProps) {
-  return <HugeiconsIcon icon={UserHugeIcon} {...props} />;
+  return <HugeiconsIcon icon={UserHugeIcon} {...(props as any)} />;
 }
 
 export function ProfileIcon(props: IconProps) {
-  return <HugeiconsIcon icon={ProfileHugeIcon} {...props} />;
+  return <HugeiconsIcon icon={ProfileHugeIcon} {...(props as any)} />;
 }

@@ -17,7 +17,7 @@ interface AddCardFormProps {
 }
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flag, Activity as ActivityIcon } from "lucide-react";
+
 
 export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) {
   const [title, setTitle] = useState("");

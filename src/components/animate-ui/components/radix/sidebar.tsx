@@ -130,7 +130,7 @@ function SidebarProvider({
 
   return (
     <LocalSidebarProvider value={contextValue}>
-      <TooltipProvider openDelay={0}>
+      <TooltipProvider delayDuration={0}>
         <div
           data-slot="sidebar-wrapper"
           style={
@@ -616,9 +616,14 @@ function SidebarMenuButton({
   }
 
   return (
-    <Tooltip side="right" align="center">
+    <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent hidden={state !== 'collapsed' || isMobile} {...tooltip} />
+      <TooltipContent 
+        side="right" 
+        align="center" 
+        hidden={state !== 'collapsed' || isMobile} 
+        {...(tooltip as any)} 
+      />
     </Tooltip>
   );
 }

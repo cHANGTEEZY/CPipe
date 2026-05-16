@@ -35,10 +35,10 @@ export function OrgSwitcher() {
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const active = workspaces.find((w: any) => w._id === activeWorkspaceId) ?? workspaces[0];
+  const active = (workspaces.find((w: any) => w._id === activeWorkspaceId) ?? (workspaces.length > 0 ? workspaces[0] : null)) as any;
 
   // Auto-select first workspace if none active
-  if (!activeWorkspaceId && workspaces.length > 0) {
+  if (!activeWorkspaceId && workspaces.length > 0 && workspaces[0]) {
     setActiveWorkspace(workspaces[0]._id as Id<"workspaces">);
   }
 

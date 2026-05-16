@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import { motion, type HTMLMotionProps, type Variant } from 'motion/react';
 
 import { getStrictContext } from '@/lib/get-strict-context';

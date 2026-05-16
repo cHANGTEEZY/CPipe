@@ -2,15 +2,12 @@ import { useState } from "react";
 import {
   DndContext,
   type DragEndEvent,
-  type DragOverEvent,
   DragOverlay,
   type DragStartEvent,
   PointerSensor,
   TouchSensor,
   useSensor,
   useSensors,
-  closestCorners,
-  pointerWithin,
   closestCenter,
 } from "@dnd-kit/core";
 import {
@@ -42,12 +39,9 @@ export function KanbanBoard({ projectId }: BoardProps) {
   const columns = useQuery(api.columns.list, { projectId }) ?? [];
   const project = useQuery(api.projects.get, { projectId });
   const moveCard = useMutation(api.cards.move);
-  const reorderCards = useMutation(api.cards.reorder);
   const reorderColumns = useMutation(api.columns.reorder);
 
-  const [activeCard, setActiveCard] = useState<any>(null);
   const [activeCardData, setActiveCardData] = useState<any>(null);
-  const [activeColumn, setActiveColumn] = useState<any>(null);
   const [activeColumnData, setActiveColumnData] = useState<any>(null);
   const [layout, setLayout] = useState<"scroll" | "2" | "3" | "4">("scroll");
 
@@ -87,21 +81,19 @@ export function KanbanBoard({ projectId }: BoardProps) {
   function onDragStart(event: DragStartEvent) {
     if (!canWrite) return;
     const { active } = event;
-    const type = active.data.current?.type;
+    const currentData = active.data.current;
+    if (!currentData) return;
+    const type = currentData.type;
 
     if (type === "card") {
-      setActiveCard(active.id);
-      setActiveCardData(active.data.current.card);
+      setActiveCardData(currentData.card);
     } else if (type === "column") {
-      setActiveColumn(active.id);
       setActiveColumnData(columns.find((c: any) => c._id === active.id));
     }
   }
 
   async function onDragEnd(event: DragEndEvent) {
-    setActiveCard(null);
     setActiveCardData(null);
-    setActiveColumn(null);
     setActiveColumnData(null);
     if (!canWrite) return;
     const { active, over } = event;
@@ -149,7 +141,7 @@ export function KanbanBoard({ projectId }: BoardProps) {
     }
   }
 
-  async function onDragOver(event: DragOverEvent) {
+  async function onDragOver() {
     // Handled in onDragEnd for simplicity — Convex live queries update other clients in real-time
   }
 

@@ -32,41 +32,41 @@ export const listByWorkspace = query({
         let projectName = undefined;
 
         if (log.projectId) {
-          const project = await ctx.db.get(log.projectId);
-          projectName = project?.name;
+          const project = await ctx.db.get(log.projectId as any);
+          projectName = (project as any)?.name;
         }
         
         if (log.entityType === "card") {
-          const card = await ctx.db.get(log.entityId);
-          targetName = card?.title || "Deleted Card";
+          const card = await ctx.db.get(log.entityId as any);
+          targetName = (card as any)?.title || "Deleted Card";
         } else if (log.entityType === "project") {
-          const project = await ctx.db.get(log.entityId);
-          targetName = project?.name || "Deleted Project";
+          const project = await ctx.db.get(log.entityId as any);
+          targetName = (project as any)?.name || "Deleted Project";
         } else if (log.entityType === "column") {
-          const column = await ctx.db.get(log.entityId);
-          targetName = column?.name || "Deleted Column";
+          const column = await ctx.db.get(log.entityId as any);
+          targetName = (column as any)?.name || "Deleted Column";
         } else if (log.entityType === "workspace") {
-          const workspace = await ctx.db.get(log.entityId);
-          targetName = workspace?.name || "Deleted Workspace";
+          const workspace = await ctx.db.get(log.entityId as any);
+          targetName = (workspace as any)?.name || "Deleted Workspace";
         } else if (log.entityType === "member") {
-          const member = await ctx.db.get(log.entityId);
+          const member = await ctx.db.get(log.entityId as any);
           if (member) {
-            const memberUser = await ctx.db.get(member.userId);
-            targetName = memberUser?.name || "Unknown Member";
+            const memberUser = await ctx.db.get((member as any).userId);
+            targetName = (memberUser as any)?.name || "Unknown Member";
           } else if (log.meta?.removedUserId) {
-             const removedUser = await ctx.db.get(log.meta.removedUserId);
-             targetName = removedUser?.name || "Removed Member";
+             const removedUser = await ctx.db.get(log.meta.removedUserId as any);
+             targetName = (removedUser as any)?.name || "Removed Member";
           }
         }
         
         // Additional enrichment for moved cards
         if (log.entityType === "card" && log.action === "moved") {
-          const fromCol = log.meta?.fromColumnId ? await ctx.db.get(log.meta.fromColumnId) : null;
-          const toCol = log.meta?.toColumnId ? await ctx.db.get(log.meta.toColumnId) : null;
+          const fromCol = log.meta?.fromColumnId ? await ctx.db.get(log.meta.fromColumnId as any) : null;
+          const toCol = log.meta?.toColumnId ? await ctx.db.get(log.meta.toColumnId as any) : null;
           log.meta = { 
             ...log.meta, 
-            fromColumnName: fromCol?.name || "Unknown",
-            toColumnName: toCol?.name || "Unknown" 
+            fromColumnName: (fromCol as any)?.name || "Unknown",
+            toColumnName: (toCol as any)?.name || "Unknown" 
           };
         }
         

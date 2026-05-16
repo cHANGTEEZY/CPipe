@@ -195,7 +195,7 @@ export const deleteUser = mutation({
     // Clean up auth accounts and sessions
     const authAccounts = await ctx.db
       .query("authAccounts")
-      .withIndex("userId", (q: any) => q.eq("userId", userId))
+      .filter((q: any) => q.eq(q.field("userId"), userId))
       .collect();
     for (const a of authAccounts) {
       await ctx.db.delete(a._id);
@@ -203,7 +203,7 @@ export const deleteUser = mutation({
     
     const authSessions = await ctx.db
       .query("authSessions")
-      .withIndex("userId", (q: any) => q.eq("userId", userId))
+      .filter((q: any) => q.eq(q.field("userId"), userId))
       .collect();
     for (const s of authSessions) {
       await ctx.db.delete(s._id);

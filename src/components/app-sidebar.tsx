@@ -1,8 +1,7 @@
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -17,33 +16,22 @@ import { ProjectSwitcher } from "@/components/project-switcher";
 import { useAppStore } from "@/store/app-store";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
 import {
   LayoutDashboard,
   Settings,
   Users,
-  LogOut,
-  User,
   Activity,
   Shield,
 } from "lucide-react";
-import { toast } from "sonner";
 
 export function AppSidebar() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { activeProjectId } = useAppStore();
-  const { signOut } = useAuthActions();
   const me = useQuery(api.users.getMe);
   const isSuperAdmin = me?.profile?.superAdmin === true;
 
-  async function handleSignOut() {
-    await signOut();
-    toast.success("Signed out");
-    window.location.href = "/login";
-  }
+
 
   const projectLinks = activeProjectId
     ? [

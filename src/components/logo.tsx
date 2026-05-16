@@ -1,5 +1,3 @@
-import { api } from "@convex/_generated/api";
-import { useQuery } from "convex/react";
 import { Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 

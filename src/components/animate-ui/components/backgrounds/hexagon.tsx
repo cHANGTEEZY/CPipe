@@ -55,7 +55,9 @@ function HexagonBackground({
       typeof ResizeObserver !== 'undefined' && node
         ? new ResizeObserver(() => updateGridDimensions())
         : null;
-    ro?.observe(node);
+    if (node) {
+      ro?.observe(node);
+    }
     return () => {
       window.removeEventListener('resize', updateGridDimensions, opts);
       ro?.disconnect();

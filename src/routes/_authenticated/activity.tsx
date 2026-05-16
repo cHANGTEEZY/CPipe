@@ -9,7 +9,6 @@ import {
   Trash2, 
   PlusCircle, 
   UserPlus, 
-  Kanban,
   User as UserIcon,
   Building2,
   Clock,
@@ -18,7 +17,6 @@ import {
   Filter
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo } from "react";

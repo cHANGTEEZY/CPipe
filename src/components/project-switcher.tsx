@@ -41,7 +41,7 @@ export function ProjectSwitcher() {
   const [pointsEnabled, setPointsEnabled] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const navigate = useNavigate({ from: "/_authenticated" });
+  const navigate = useNavigate();
 
   const active = projects.find((p: any) => p._id === activeProjectId);
 

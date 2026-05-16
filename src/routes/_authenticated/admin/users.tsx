@@ -143,7 +143,7 @@ function AdminUsersPage() {
       cell: ({ row }) => {
         return <StatusBadge status={row.original.status} />;
       },
-      filterFn: (row, id, value) => {
+      filterFn: (row, _id, value) => {
         return value.includes(row.original.status);
       },
     },
