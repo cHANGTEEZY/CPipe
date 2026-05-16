@@ -92,17 +92,46 @@ export function CardDetailModal({
   );
 
   async function handleSave() {
+    if (!title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!description.trim()) {
+      toast.error("Description is required");
+      return;
+    }
+    if (assigneeId === "unassigned") {
+      toast.error("Assignee is required");
+      return;
+    }
+    if (!dateRange?.from || !dateRange?.to) {
+      toast.error("Timeline is required");
+      return;
+    }
+    if (!status) {
+      toast.error("Status is required");
+      return;
+    }
+    if (!priority) {
+      toast.error("Priority is required");
+      return;
+    }
+    if (labels.length === 0) {
+      toast.error("At least one label is required");
+      return;
+    }
+
     setSaving(true);
     try {
       await updateCard({
         cardId: card._id,
         title: title.trim(),
-        description: description.trim() || undefined,
+        description: description.trim(),
         labels,
         points: points ? Number(points) : undefined,
-        assigneeId: assigneeId === "unassigned" ? null : (assigneeId as any),
-        startDate: dateRange?.from ? dateRange.from.getTime() : null,
-        dueDate: dateRange?.to ? dateRange.to.getTime() : null,
+        assigneeId: assigneeId as any,
+        startDate: dateRange.from.getTime(),
+        dueDate: dateRange.to.getTime(),
         status: status as any,
         priority: priority as any,
       });
@@ -158,7 +187,7 @@ export function CardDetailModal({
               {/* Status */}
               <div className="space-y-2">
                 <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                  Status
+                  Status <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={status}
@@ -178,7 +207,7 @@ export function CardDetailModal({
               {/* Priority */}
               <div className="space-y-2">
                 <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                  Priority
+                  Priority <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={priority}
@@ -202,7 +231,7 @@ export function CardDetailModal({
               {/* Assignee */}
               <div className="space-y-2">
                 <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                  Assignee
+                  Assignee <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={assigneeId}
@@ -250,7 +279,7 @@ export function CardDetailModal({
             {/* Timeline */}
             <div className="space-y-2">
               <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                Timeline
+                Timeline <span className="text-destructive">*</span>
               </Label>
               <DateRangePicker
                 date={dateRange}
@@ -262,7 +291,7 @@ export function CardDetailModal({
             {/* Labels */}
             <div className="space-y-3">
               <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                Labels
+                Labels <span className="text-destructive">*</span>
               </Label>
               <div className="flex flex-wrap gap-2">
                 {ALL_LABELS.map((label) => (
@@ -288,7 +317,7 @@ export function CardDetailModal({
             {/* Description */}
             <div className="space-y-3">
               <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                Description
+                Description <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 value={description}

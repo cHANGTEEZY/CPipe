@@ -34,7 +34,24 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim()) return;
+    
+    if (!title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!status) {
+      toast.error("Status is required");
+      return;
+    }
+    if (!priority) {
+      toast.error("Priority is required");
+      return;
+    }
+    if (!dateRange?.from || !dateRange?.to) {
+      toast.error("Timeline is required");
+      return;
+    }
+
     setLoading(true);
     try {
       await createCard({ 
@@ -42,14 +59,15 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
         projectId, 
         title: title.trim(), 
         labels: [],
-        startDate: dateRange?.from ? dateRange.from.getTime() : undefined,
-        dueDate: dateRange?.to ? dateRange.to.getTime() : undefined,
+        startDate: dateRange.from.getTime(),
+        dueDate: dateRange.to.getTime(),
         status: status as any,
         priority: priority as any,
       });
       setTitle("");
       setDateRange(undefined);
       inputRef.current?.focus();
+      toast.success("Card created");
     } catch (err: any) {
       toast.error(err.message ?? "Failed to create card");
     } finally {
@@ -72,7 +90,7 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
       
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1 tracking-wider">Status</label>
+          <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1 tracking-wider">Status <span className="text-destructive">*</span></label>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="h-8 text-[11px] bg-muted/20">
               <SelectValue />
@@ -85,7 +103,7 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
           </Select>
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1 tracking-wider">Priority</label>
+          <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1 tracking-wider">Priority <span className="text-destructive">*</span></label>
           <Select value={priority} onValueChange={setPriority}>
             <SelectTrigger className="h-8 text-[11px] bg-muted/20">
               <SelectValue />
@@ -101,7 +119,7 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1 tracking-wider">Timeline</label>
+        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1 tracking-wider">Timeline <span className="text-destructive">*</span></label>
         <DateRangePicker 
           date={dateRange} 
           setDate={setDateRange} 

@@ -143,6 +143,19 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
 
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
+            {card.assigneeId && (
+              <div 
+                className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary ring-1 ring-primary/20 shadow-sm overflow-hidden" 
+                title={assignee?.profile?.displayName || assignee?.name || "Unassigned"}
+              >
+                {assignee?.profile?.avatarUrl ? (
+                  <img src={assignee.profile.avatarUrl} alt="" className="size-full object-cover" />
+                ) : (
+                  (assignee?.profile?.displayName?.[0] ?? assignee?.name?.[0] ?? "?").toUpperCase()
+                )}
+              </div>
+            )}
+
             {card.points != null && (
               <Badge variant="secondary" className="h-5 text-[10px] px-1.5 font-bold tabular-nums">
                 {card.points}
@@ -158,19 +171,6 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
           </div>
 
           <div className="flex items-center gap-2">
-            {card.assigneeId && (
-              <div 
-                className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary ring-1 ring-primary/20 shadow-sm overflow-hidden" 
-                title={assignee?.profile?.displayName || assignee?.name || "Unassigned"}
-              >
-                {assignee?.profile?.avatarUrl ? (
-                  <img src={assignee.profile.avatarUrl} alt="" className="size-full object-cover" />
-                ) : (
-                  (assignee?.profile?.displayName?.[0] ?? assignee?.name?.[0] ?? "?").toUpperCase()
-                )}
-              </div>
-            )}
-            
             {canDelete && (
               <Button
                 variant="ghost"
