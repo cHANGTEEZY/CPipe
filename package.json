@@ -57,8 +57,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
+    "@emnapi/core": "^1.10.0",
+    "@emnapi/runtime": "^1.10.0",
     "@eslint/js": "^10.0.1",
     "@faker-js/faker": "^10.4.0",
+    "@napi-rs/wasm-runtime": "^1.1.4",
     "@rolldown/plugin-babel": "^0.2.3",
     "@tanstack/router-cli": "^1.166.43",
     "@tanstack/router-plugin": "^1.167.35",
