@@ -9,8 +9,23 @@ export default defineSchema({
   userProfiles: defineTable({
     userId: v.id("users"),
     displayName: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
+    // Approval status for admin-gated signups
+    status: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("rejected"),
+        v.literal("suspended"),
+        v.literal("banned")
+      )
+    ),
+    rejectionReason: v.optional(v.string()),
+    // Super admin flag
+    superAdmin: v.optional(v.boolean()),
   }).index("by_userId", ["userId"]),
 
   // Workspaces (orgs)

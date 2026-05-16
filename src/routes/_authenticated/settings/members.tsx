@@ -4,7 +4,6 @@ import { api } from "@convex/_generated/api";
 import { useAppStore } from "@/store/app-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -13,22 +12,89 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Users, Mail, Shield, Trash2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Users,
+  Mail,
+  Shield,
+  Trash2,
+  UserPlus,
+  Crown,
+  Eye,
+  Edit3,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Id } from "@convex/_generated/dataModel";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const Route = createFileRoute("/_authenticated/settings/members")({
   component: MembersPage,
 });
 
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+const ROLE_META: Record<
+  string,
+  { label: string; icon: typeof Crown; color: string }
+> = {
+  owner: {
+    label: "Owner",
+    icon: Crown,
+    color: "bg-amber-500/10 text-amber-600 border-amber-200",
+  },
+  admin: {
+    label: "Admin",
+    icon: Shield,
+    color: "bg-purple-500/10 text-purple-600 border-purple-200",
+  },
+  editor: {
+    label: "Editor",
+    icon: Edit3,
+    color: "bg-blue-500/10 text-blue-600 border-blue-200",
+  },
+  viewer: {
+    label: "Viewer",
+    icon: Eye,
+    color: "bg-muted text-muted-foreground border-border",
+  },
+};
+
+function RoleBadge({ role }: { role: string }) {
+  const meta = ROLE_META[role] ?? ROLE_META.viewer;
+  const Icon = meta.icon;
+  return (
+    <Badge
+      variant="outline"
+      className={`capitalize text-xs gap-1 font-medium ${meta.color}`}
+    >
+      <Icon className="size-3" />
+      {meta.label}
+    </Badge>
+  );
+}
+
 function MembersPage() {
   const { activeWorkspaceId } = useAppStore();
-  const members = useQuery(
-    api.members.list,
-    activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip"
-  ) ?? [];
+  const members =
+    useQuery(
+      api.members.list,
+      activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip"
+    ) ?? [];
   const inviteMember = useMutation(api.members.invite);
   const updateRole = useMutation(api.members.updateRole);
   const removeMember = useMutation(api.members.remove);
@@ -36,11 +102,19 @@ function MembersPage() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "editor" | "viewer">("editor");
   const [inviting, setInviting] = useState(false);
+  const [search, setSearch] = useState("");
 
   if (!activeWorkspaceId) {
     return (
-      <div className="text-center text-muted-foreground py-12">
-        Select a workspace first.
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-muted mx-auto">
+            <Users className="size-7 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium">
+            Select a workspace to manage members.
+          </p>
+        </div>
       </div>
     );
   }
@@ -50,7 +124,11 @@ function MembersPage() {
     if (!email.trim()) return;
     setInviting(true);
     try {
-      await inviteMember({ workspaceId: activeWorkspaceId!, email: email.trim(), role });
+      await inviteMember({
+        workspaceId: activeWorkspaceId!,
+        email: email.trim(),
+        role,
+      });
       toast.success(`Invite sent to ${email}`);
       setEmail("");
     } catch (err: any) {
@@ -60,7 +138,10 @@ function MembersPage() {
     }
   }
 
-  async function handleRoleChange(memberId: Id<"members">, newRole: "admin" | "editor" | "viewer") {
+  async function handleRoleChange(
+    memberId: Id<"members">,
+    newRole: "admin" | "editor" | "viewer"
+  ) {
     try {
       await updateRole({ memberId, role: newRole });
       toast.success("Role updated");
@@ -70,6 +151,7 @@ function MembersPage() {
   }
 
   async function handleRemove(memberId: Id<"members">, name: string) {
+    if (!confirm(`Remove ${name} from this workspace?`)) return;
     try {
       await removeMember({ memberId });
       toast.success(`${name} removed`);
@@ -78,40 +160,55 @@ function MembersPage() {
     }
   }
 
-  const ROLE_COLOR: Record<string, string> = {
-    owner: "bg-amber-500/10 text-amber-600",
-    admin: "bg-purple-500/10 text-purple-600",
-    editor: "bg-blue-500/10 text-blue-600",
-    viewer: "bg-muted text-muted-foreground",
-  };
+  const filtered = members.filter((m: any) => {
+    const q = search.toLowerCase();
+    return (
+      !q ||
+      m.user?.name?.toLowerCase().includes(q) ||
+      m.user?.email?.toLowerCase().includes(q) ||
+      m.role?.toLowerCase().includes(q)
+    );
+  });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <Users className="size-6" /> Members
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Manage who has access to this workspace.
-        </p>
+    <div className="w-full space-y-8">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold flex items-center gap-2">
+            <Users className="size-6" />
+            Members
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Manage who has access to this workspace. Only members have access —
+            others are blocked.
+          </p>
+        </div>
+        <Badge variant="secondary" className="text-xs">
+          {members.length} member{members.length !== 1 ? "s" : ""}
+        </Badge>
       </div>
 
-      {/* Invite form */}
-      <div className="rounded-xl border p-5 space-y-4">
+      {/* Invite section */}
+      <div className="rounded-xl border bg-card p-5 space-y-4">
         <h2 className="text-sm font-semibold flex items-center gap-2">
-          <Mail className="size-4" /> Invite member
+          <UserPlus className="size-4 text-primary" />
+          Invite member
         </h2>
         <form onSubmit={handleInvite} className="flex gap-3 flex-wrap">
-          <Input
-            type="email"
-            placeholder="colleague@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 min-w-48"
-            required
-          />
+          <div className="flex-1 min-w-48 relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              type="email"
+              placeholder="colleague@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="pl-9"
+              required
+            />
+          </div>
           <Select value={role} onValueChange={(v) => setRole(v as any)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -120,54 +217,124 @@ function MembersPage() {
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>
-          <Button type="submit" disabled={inviting || !email.trim()}>
-            {inviting ? "Inviting…" : "Invite"}
+          <Button type="submit" disabled={inviting || !email.trim()} className="gap-2">
+            <UserPlus className="size-4" />
+            {inviting ? "Sending…" : "Send invite"}
           </Button>
         </form>
+        <p className="text-xs text-muted-foreground">
+          The user must have an account. They'll receive an invite link valid for 7 days.
+        </p>
       </div>
 
-      {/* Member list */}
-      <div className="rounded-xl border divide-y">
-        {members.map((m: any) => (
-          <div key={m._id} className="flex items-center gap-3 p-4">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-              {m.user?.name?.[0]?.toUpperCase() ?? "?"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{m.user?.name ?? "Unknown"}</p>
-              <p className="text-xs text-muted-foreground truncate">{m.user?.email}</p>
-            </div>
-            <Badge className={`capitalize text-xs ${ROLE_COLOR[m.role]}`} variant="secondary">
-              <Shield className="size-3 mr-1" />
-              {m.role}
-            </Badge>
-            {m.role !== "owner" && (
-              <>
-                <Select
-                  value={m.role}
-                  onValueChange={(v) => handleRoleChange(m._id, v as any)}
-                >
-                  <SelectTrigger className="w-28 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                    <SelectItem value="editor">Editor</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 hover:text-destructive"
-                  onClick={() => handleRemove(m._id, m.user?.name ?? "User")}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </>
+      {/* Search */}
+      <div className="flex items-center gap-3">
+        <Input
+          placeholder="Search by name, email or role…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-xs"
+        />
+      </div>
+
+      {/* Members Table */}
+      <div className="rounded-xl border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableHead className="w-12"></TableHead>
+              <TableHead>Member</TableHead>
+              <TableHead className="hidden sm:table-cell">Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead className="hidden md:table-cell">Joined</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-12">
+                  <div className="space-y-2">
+                    <Users className="size-8 mx-auto text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground">
+                      {search ? "No members match your search." : "No members yet. Invite someone above."}
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((m: any) => {
+                const name = m.user?.name ?? "Unknown User";
+                const email = m.user?.email ?? "";
+                const joinedDate = m.joinedAt
+                  ? new Date(m.joinedAt).toLocaleDateString()
+                  : "—";
+
+                return (
+                  <TableRow key={m._id} className="group">
+                    <TableCell>
+                      <Avatar className="size-9">
+                        <AvatarImage src={m.user?.profile?.avatarUrl} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                          {initials(name)}
+                        </AvatarFallback>
+                      </Avatar>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm font-medium">{name}</p>
+                        <p className="text-xs text-muted-foreground sm:hidden">{email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <p className="text-sm text-muted-foreground">{email}</p>
+                    </TableCell>
+                    <TableCell>
+                      <RoleBadge role={m.role} />
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <span className="text-xs text-muted-foreground">{joinedDate}</span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {m.role !== "owner" ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <Select
+                            value={m.role}
+                            onValueChange={(v) => handleRoleChange(m._id, v as any)}
+                          >
+                            <SelectTrigger className="w-28 h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="viewer">Viewer</SelectItem>
+                              <SelectItem value="editor">Editor</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                            onClick={() => handleRemove(m._id, name)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground pr-2">Owner</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
-          </div>
-        ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Access note */}
+      <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4 text-sm text-blue-700 dark:text-blue-300">
+        <strong>Access control:</strong> Only users listed above have access to this workspace. Users not added as members cannot see or access any workspace data.
       </div>
     </div>
   );

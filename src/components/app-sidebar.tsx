@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   Sidebar,
   SidebarContent,
@@ -26,14 +26,17 @@ import {
   LogOut,
   User,
   Activity,
+  Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { activeProjectId } = useAppStore();
   const { signOut } = useAuthActions();
   const me = useQuery(api.users.getMe);
+  const isSuperAdmin = me?.profile?.superAdmin === true;
 
   async function handleSignOut() {
     await signOut();
@@ -137,6 +140,32 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* ── Admin Panel link (super admin only) ── */}
+        {isSuperAdmin && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>Administration</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip="Admin Panel"
+                      isActive={location.pathname.startsWith("/admin")}
+                    >
+                      <Link to="/admin">
+                        <Shield />
+                        <span>Admin Panel</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
 
       {/* ── Footer: User + Theme + Sign out ── */}

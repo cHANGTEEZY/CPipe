@@ -2,9 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AuthDivider } from "@/components/auth/auth-split-layout"
+import { AuthDivider, GoogleIcon } from "@/components/auth/auth-split-layout"
 import { PasswordField } from "@/components/auth/password-field"
 import { useAuthActions } from "@convex-dev/auth/react"
+import { useMutation } from "convex/react"
+import { api } from "@convex/_generated/api"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -18,14 +20,18 @@ export const Route = createFileRoute("/(auth)/register")({
 function RegisterPage() {
   const navigate = useNavigate()
   const { signIn } = useAuthActions()
-  const [name, setName] = useState("")
+  const initPending = useMutation(api.users.initNewUser)
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
+  const fullName = `${firstName} ${lastName}`.trim()
   const canSubmit =
-    name.trim().length > 0 &&
+    firstName.trim().length > 0 &&
     email.trim().length > 0 &&
     password.length >= 8 &&
     password === confirm
@@ -42,8 +48,11 @@ function RegisterPage() {
     }
     setLoading(true)
     try {
-      await signIn("password", { email, password, name, flow: "signUp" })
-      navigate({ to: "/" })
+      await signIn("password", { email, password, name: fullName, flow: "signUp" })
+      // Set user profile to pending after signup
+      await initPending({ firstName, lastName })
+      toast.success("Account created! Awaiting admin approval.")
+      navigate({ to: "/pending" })
     } catch (err: any) {
       toast.error(err.message ?? "Registration failed")
     } finally {
@@ -51,31 +60,69 @@ function RegisterPage() {
     }
   }
 
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true)
+    try {
+      await signIn("google", { redirectTo: "/" })
+    } catch (err: any) {
+      toast.error(err.message ?? "Google sign-in failed")
+      setGoogleLoading(false)
+    }
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Sign up</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Create account</h1>
         <p className="text-sm text-muted-foreground">
-          Create your CPipe Tracker account to get started.
+          Sign up and wait for admin approval to access CPipe Tracker.
         </p>
       </div>
+
+      {/* Google */}
+      <Button
+        type="button"
+        variant="outline"
+        className="h-11 w-full rounded-xl gap-2.5 text-sm font-medium border-border/60"
+        onClick={handleGoogleSignIn}
+        disabled={googleLoading}
+      >
+        <GoogleIcon />
+        {googleLoading ? "Redirecting…" : "Sign up with Google"}
+      </Button>
 
       <AuthDivider />
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="space-y-2">
-          <Label htmlFor="name" className="text-sm font-medium">
-            Full name
-          </Label>
-          <Input
-            id="name"
-            autoComplete="name"
-            placeholder="Your full name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={INPUT_CLASS}
-            required
-          />
+        {/* First + Last Name */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="firstName" className="text-sm font-medium">
+              First name
+            </Label>
+            <Input
+              id="firstName"
+              autoComplete="given-name"
+              placeholder="First name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className={INPUT_CLASS}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lastName" className="text-sm font-medium">
+              Last name
+            </Label>
+            <Input
+              id="lastName"
+              autoComplete="family-name"
+              placeholder="Last name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className={INPUT_CLASS}
+            />
+          </div>
         </div>
 
         <div className="space-y-2">

@@ -1,36 +1,21 @@
 import { Button } from "@/components/animate-ui/components/buttons/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import type { FormEvent } from "react";
 import { FieldDescription } from "./field-description";
 import { SectionIntro } from "./section-intro";
-
-const textareaClass = cn(
-  "flex min-h-[120px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-base text-foreground ring-offset-background md:text-sm",
-  "placeholder:text-muted-foreground",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-  "disabled:cursor-not-allowed disabled:opacity-50",
-);
 
 type PersonalFormSectionProps = {
   idPrefix: string;
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
-  jobTitle: string;
-  timezone: string;
-  bio: string;
+  avatarUrl: string;
   onFirstNameChange: (v: string) => void;
   onLastNameChange: (v: string) => void;
   onEmailChange: (v: string) => void;
-  onPhoneChange: (v: string) => void;
-  onJobTitleChange: (v: string) => void;
-  onTimezoneChange: (v: string) => void;
-  onBioChange: (v: string) => void;
+  onAvatarUrlChange: (v: string) => void;
   onSubmit: (e: FormEvent) => void;
-  onResetDemo: () => void;
 };
 
 export function PersonalFormSection({
@@ -38,19 +23,12 @@ export function PersonalFormSection({
   firstName,
   lastName,
   email,
-  phone,
-  jobTitle,
-  timezone,
-  bio,
+  avatarUrl,
   onFirstNameChange,
   onLastNameChange,
   onEmailChange,
-  onPhoneChange,
-  onJobTitleChange,
-  onTimezoneChange,
-  onBioChange,
+  onAvatarUrlChange,
   onSubmit,
-  onResetDemo,
 }: PersonalFormSectionProps) {
   const headingId = `${idPrefix}-personal-heading`;
 
@@ -63,10 +41,11 @@ export function PersonalFormSection({
         <SectionIntro
           headingId={headingId}
           title="Personal information"
-          description="Your name and contact details shown on invitations, audit logs, and directory listings."
+          description="Your name, contact details and profile picture."
         />
 
         <form onSubmit={onSubmit} className="space-y-6 lg:col-span-2">
+          {/* First + Last Name */}
           <div className="grid gap-6 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor={`${idPrefix}-first`}>First name</Label>
@@ -74,6 +53,7 @@ export function PersonalFormSection({
                 id={`${idPrefix}-first`}
                 name="firstName"
                 autoComplete="given-name"
+                placeholder="First name"
                 value={firstName}
                 onChange={(e) => onFirstNameChange(e.target.value)}
               />
@@ -84,12 +64,14 @@ export function PersonalFormSection({
                 id={`${idPrefix}-last`}
                 name="lastName"
                 autoComplete="family-name"
+                placeholder="Last name"
                 value={lastName}
                 onChange={(e) => onLastNameChange(e.target.value)}
               />
             </div>
           </div>
 
+          {/* Email */}
           <div className="space-y-2">
             <Label htmlFor={`${idPrefix}-email`}>Email</Label>
             <Input
@@ -99,76 +81,33 @@ export function PersonalFormSection({
               autoComplete="email"
               value={email}
               onChange={(e) => onEmailChange(e.target.value)}
+              readOnly
+              className="opacity-60 cursor-not-allowed"
             />
             <FieldDescription>
-              Used for sign-in and billing receipts. Changing it may require
-              verification on a real deployment.
+              Email is managed by your auth provider and cannot be changed here.
             </FieldDescription>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor={`${idPrefix}-phone`}>Phone</Label>
-              <Input
-                id={`${idPrefix}-phone`}
-                name="phone"
-                type="tel"
-                autoComplete="tel"
-                value={phone}
-                onChange={(e) => onPhoneChange(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={`${idPrefix}-title`}>Job title</Label>
-              <Input
-                id={`${idPrefix}-title`}
-                name="jobTitle"
-                autoComplete="organization-title"
-                value={jobTitle}
-                onChange={(e) => onJobTitleChange(e.target.value)}
-              />
-            </div>
-          </div>
-
+          {/* Avatar URL */}
           <div className="space-y-2">
-            <Label htmlFor={`${idPrefix}-timezone`}>Time zone</Label>
+            <Label htmlFor={`${idPrefix}-avatar`}>Profile picture URL</Label>
             <Input
-              id={`${idPrefix}-timezone`}
-              name="timezone"
-              value={timezone}
-              onChange={(e) => onTimezoneChange(e.target.value)}
-              placeholder="e.g. Europe/London"
+              id={`${idPrefix}-avatar`}
+              name="avatarUrl"
+              type="url"
+              placeholder="https://example.com/photo.jpg"
+              value={avatarUrl}
+              onChange={(e) => onAvatarUrlChange(e.target.value)}
             />
             <FieldDescription>
-              Report exports and scheduled digests use this zone for timestamps.
+              Paste a public image URL. Leave blank to use your initials as avatar.
             </FieldDescription>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor={`${idPrefix}-bio`}>Bio</Label>
-            <textarea
-              id={`${idPrefix}-bio`}
-              name="bio"
-              rows={4}
-              className={textareaClass}
-              value={bio}
-              onChange={(e) => onBioChange(e.target.value)}
-              placeholder="A short bio visible to teammates…"
-            />
           </div>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <Button type="submit" hoverScale={1} tapScale={1} variant="default">
               Save changes
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              hoverScale={1}
-              tapScale={1}
-              onClick={onResetDemo}
-            >
-              Reset to demo defaults
             </Button>
           </div>
         </form>

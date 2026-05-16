@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { DangerZoneSection } from "./components/danger-zone-section";
-import { NotificationsFormSection } from "./components/notifications-form-section";
 import { PersonalFormSection } from "./components/personal-form-section";
 import { ProfilePageHeader } from "./components/profile-page-header";
 import { ProfileSummary } from "./components/profile-summary";
@@ -18,48 +17,43 @@ const ProfilePage = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-  const [timezone, setTimezone] = useState("UTC");
-  const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [weeklyDigestEmail, setWeeklyDigestEmail] = useState(false);
-  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
-
   // Populate from Convex on load
   useEffect(() => {
     if (!me) return;
-    const displayName = me.profile?.displayName ?? me.name ?? "";
-    const parts = displayName.split(" ");
-    setFirstName(parts[0] ?? "");
-    setLastName(parts.slice(1).join(" ") ?? "");
+    // Prefer profile firstName/lastName, fall back to splitting name
+    if (me.profile?.firstName || me.profile?.lastName) {
+      setFirstName(me.profile.firstName ?? "");
+      setLastName(me.profile.lastName ?? "");
+    } else {
+      const displayName = me.profile?.displayName ?? me.name ?? "";
+      const parts = displayName.split(" ");
+      setFirstName(parts[0] ?? "");
+      setLastName(parts.slice(1).join(" ") ?? "");
+    }
     setEmail(me.email ?? "");
+    setAvatarUrl(me.profile?.avatarUrl ?? "");
   }, [me]);
 
   const onSaveProfile = async (e: FormEvent) => {
     e.preventDefault();
     try {
+      const displayName = `${firstName} ${lastName}`.trim();
       await updateProfile({
-        displayName: `${firstName} ${lastName}`.trim(),
+        firstName,
+        lastName,
+        displayName,
+        avatarUrl: avatarUrl || undefined,
       });
       toast.success("Profile saved");
     } catch (err: any) {
       toast.error(err.message ?? "Failed to save");
     }
-  };
-
-  const resetPersonalToDemo = () => {
-    if (!me) return;
-    const displayName = me.profile?.displayName ?? me.name ?? "";
-    const parts = displayName.split(" ");
-    setFirstName(parts[0] ?? "");
-    setLastName(parts.slice(1).join(" ") ?? "");
-    setEmail(me.email ?? "");
-    toast.message("Form reset");
   };
 
   const onUpdatePassword = (e: FormEvent) => {
@@ -70,11 +64,6 @@ const ProfilePage = () => {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
-  };
-
-  const onSaveNotifications = (e: FormEvent) => {
-    e.preventDefault();
-    toast.success("Notification preferences saved");
   };
 
   const displayName = `${firstName} ${lastName}`.trim() || email;
@@ -88,10 +77,14 @@ const ProfilePage = () => {
         email={email}
         firstName={firstName}
         lastName={lastName}
-        demo={{ firstName, lastName, email, phone, jobTitle, timezone, bio,
-          weeklyDigestEmail, showOnlineStatus,
-          avatar: me?.profile?.avatarUrl ?? "",
-          location: "", } as any}
+        avatar={avatarUrl || me?.profile?.avatarUrl || ""}
+        id={me?._id ?? ""}
+        role={"user"}
+        memberSinceLabel={
+          me?._creationTime
+            ? new Date(me._creationTime).toLocaleDateString()
+            : ""
+        }
       />
 
       <PersonalFormSection
@@ -99,19 +92,12 @@ const ProfilePage = () => {
         firstName={firstName}
         lastName={lastName}
         email={email}
-        phone={phone}
-        jobTitle={jobTitle}
-        timezone={timezone}
-        bio={bio}
+        avatarUrl={avatarUrl}
         onFirstNameChange={setFirstName}
         onLastNameChange={setLastName}
         onEmailChange={setEmail}
-        onPhoneChange={setPhone}
-        onJobTitleChange={setJobTitle}
-        onTimezoneChange={setTimezone}
-        onBioChange={setBio}
+        onAvatarUrlChange={setAvatarUrl}
         onSubmit={onSaveProfile}
-        onResetDemo={resetPersonalToDemo}
       />
 
       <SecurityFormSection
@@ -123,15 +109,6 @@ const ProfilePage = () => {
         onNewPasswordChange={setNewPassword}
         onConfirmPasswordChange={setConfirmPassword}
         onSubmit={onUpdatePassword}
-      />
-
-      <NotificationsFormSection
-        idPrefix={idPrefix}
-        weeklyDigestEmail={weeklyDigestEmail}
-        showOnlineStatus={showOnlineStatus}
-        onWeeklyDigestChange={setWeeklyDigestEmail}
-        onShowOnlineChange={setShowOnlineStatus}
-        onSubmit={onSaveNotifications}
       />
 
       <DangerZoneSection idPrefix={idPrefix} />

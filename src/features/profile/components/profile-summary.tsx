@@ -2,7 +2,6 @@ import { HexagonBackground } from "@/components/animate-ui/components/background
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Camera, Fingerprint } from "lucide-react";
-import type { ProfileDemo } from "../demo-data";
 import { initials } from "../utils/initials";
 
 type ProfileSummaryProps = {
@@ -10,10 +9,10 @@ type ProfileSummaryProps = {
   email: string;
   firstName: string;
   lastName: string;
-  demo: Pick<
-    ProfileDemo,
-    "avatar" | "id" | "role" | "memberSinceLabel" | "jobTitle"
-  >;
+  avatar: string;
+  id: string;
+  role: string;
+  memberSinceLabel: string;
 };
 
 const roleLabel = (role: string) =>
@@ -24,7 +23,10 @@ export function ProfileSummary({
   email,
   firstName,
   lastName,
-  demo,
+  avatar,
+  id,
+  role,
+  memberSinceLabel,
 }: ProfileSummaryProps) {
   return (
     <div className="relative mb-2  overflow-hidden rounded-2xl shadow-sm">
@@ -37,7 +39,7 @@ export function ProfileSummary({
       <div className="relative z-10 pointer-events-none px-6 pb-6 pt-16 sm:pt-20">
         <div className="group relative -mt-10 mb-4 inline-block pointer-events-auto sm:-mt-12">
           <Avatar className="size-20 border-4 border-card shadow-md sm:size-24">
-            <AvatarImage src={demo.avatar} alt="" />
+            <AvatarImage src={avatar} alt="" />
             <AvatarFallback className="bg-muted text-lg font-semibold text-muted-foreground">
               {initials(firstName, lastName)}
             </AvatarFallback>
@@ -57,11 +59,6 @@ export function ProfileSummary({
               <h2 className="text-xl font-bold tracking-tight">
                 {displayName}
               </h2>
-              {demo.jobTitle && (
-                <p className="text-sm font-medium text-muted-foreground">
-                  {demo.jobTitle}
-                </p>
-              )}
               <p className="text-sm text-muted-foreground">{email}</p>
             </div>
 
@@ -69,7 +66,7 @@ export function ProfileSummary({
               variant="secondary"
               className="w-fit capitalize border-0 bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
             >
-              {roleLabel(demo.role)}
+              {roleLabel(role)}
             </Badge>
           </div>
 
@@ -78,14 +75,14 @@ export function ProfileSummary({
               <Fingerprint className="size-3.5 opacity-60" />
               ID&nbsp;
               <span className="font-mono font-medium text-foreground">
-                {demo.id}
+                {id}
               </span>
             </span>
             <span className="flex items-center gap-1.5">
               <CalendarDays className="size-3.5 opacity-60" />
               Member since&nbsp;
               <span className="font-medium text-foreground">
-                {demo.memberSinceLabel}
+                {memberSinceLabel}
               </span>
             </span>
           </div>

@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
-import { useConvexAuth } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
+import { api } from "@convex/_generated/api";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -16,8 +17,9 @@ export const Route = createFileRoute("/_authenticated")({
 
 function RouteComponent() {
   const { isAuthenticated, isLoading } = useConvexAuth();
+  const me = useQuery(api.users.getMe);
 
-  if (isLoading) {
+  if (isLoading || (isAuthenticated && me === undefined)) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -28,6 +30,20 @@ function RouteComponent() {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+
+  // Super admins bypass the approval gate
+  const isSuperAdmin = me?.profile?.superAdmin === true;
+  const status = me?.profile?.status;
+
+  // Gate non-superadmin users who aren't approved
+  if (!isSuperAdmin && status && status !== "approved") {
+    return <Navigate to="/pending" replace />;
+  }
+
+  // New users (no profile yet) get pending status — redirect
+  // But only if profile has loaded (me is not undefined)
+  // (first signup: profile may not be set yet, let them through temporarily
+  //  — the register mutation sets status)
 
   return (
     <SidebarProvider>

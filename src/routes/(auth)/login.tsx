@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AuthDivider } from "@/components/auth/auth-split-layout";
+import { AuthDivider, GoogleIcon } from "@/components/auth/auth-split-layout";
 import { PasswordField } from "@/components/auth/password-field";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
@@ -21,6 +21,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,14 +36,36 @@ function LoginPage() {
     }
   }
 
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true);
+    try {
+      await signIn("google", { redirectTo: "/" });
+    } catch (err: any) {
+      toast.error(err.message ?? "Google sign-in failed");
+      setGoogleLoading(false);
+    }
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Welcome back!</h1>
         <p className="text-sm text-muted-foreground">
           Log in to CPipe Tracker to continue.
         </p>
       </div>
+
+      {/* Google Sign In */}
+      <Button
+        type="button"
+        variant="outline"
+        className="h-11 w-full rounded-xl gap-2.5 text-sm font-medium border-border/60"
+        onClick={handleGoogleSignIn}
+        disabled={googleLoading}
+      >
+        <GoogleIcon />
+        {googleLoading ? "Redirecting…" : "Continue with Google"}
+      </Button>
 
       <AuthDivider />
 
