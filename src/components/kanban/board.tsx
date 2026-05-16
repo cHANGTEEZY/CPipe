@@ -11,7 +11,11 @@ import {
   useSensors,
   closestCorners,
 } from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy, rectSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
@@ -19,7 +23,13 @@ import { KanbanColumn } from "./column";
 import { KanbanCard } from "./card";
 import { AddColumnForm } from "./add-column-form";
 import { Loader2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface BoardProps {
@@ -39,16 +49,20 @@ export function KanbanBoard({ projectId }: BoardProps) {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    }),
   );
 
   const myMembership = useQuery(
     api.members.getMyMembership,
-    project ? { workspaceId: project.workspaceId } : "skip"
+    project ? { workspaceId: project.workspaceId } : "skip",
   );
-  
-  const canWrite = myMembership && ["owner", "admin", "editor"].includes(myMembership.role);
-  const canDelete = myMembership && ["owner", "admin"].includes(myMembership.role);
+
+  const canWrite =
+    myMembership && ["owner", "admin", "editor"].includes(myMembership.role);
+  const canDelete =
+    myMembership && ["owner", "admin"].includes(myMembership.role);
 
   if (project === undefined) {
     return (
@@ -157,18 +171,27 @@ export function KanbanBoard({ projectId }: BoardProps) {
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
       >
-        <div 
+        <div
           className={cn(
-            layout === "scroll" 
+            layout === "scroll"
               ? "flex gap-4 overflow-x-auto pb-4 flex-1 items-start"
               : `grid gap-4 overflow-y-auto pb-4 flex-1 items-start ${
-                  layout === "2" ? "grid-cols-1 md:grid-cols-2" :
-                  layout === "3" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" :
-                  "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                }`
+                  layout === "2"
+                    ? "grid-cols-1 md:grid-cols-2"
+                    : layout === "3"
+                      ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+                      : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                }`,
           )}
         >
-          <SortableContext items={columnIds} strategy={layout === "scroll" ? horizontalListSortingStrategy : rectSortingStrategy}>
+          <SortableContext
+            items={columnIds}
+            strategy={
+              layout === "scroll"
+                ? horizontalListSortingStrategy
+                : rectSortingStrategy
+            }
+          >
             {columns.map((col: any) => (
               <KanbanColumn
                 key={col._id}
