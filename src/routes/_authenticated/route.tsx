@@ -51,7 +51,14 @@ function RouteComponent() {
       <SidebarInset className="min-h-svh min-w-0">
         <header className="flex h-14 shrink-0 items-center gap-4 border-b px-6">
           <SidebarTrigger />
-          <span className="text-sm font-medium">CPipe Tracker</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold tracking-tight bg-primary text-primary-foreground px-2 py-0.5 rounded">
+              CP
+            </span>
+            <span className="text-sm font-semibold tracking-tight">
+              CPipeLine
+            </span>
+          </div>
           <div className="ml-auto gap-2 flex items-center justify-center">
             <ThemeToggle />
             <ProfileDropDown />

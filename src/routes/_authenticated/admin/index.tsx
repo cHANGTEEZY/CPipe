@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Users, UserCheck, UserX, Clock, TrendingUp } from "lucide-react";
 
-export const Route = createFileRoute("/admin/")({
+export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminDashboard,
 });
 
@@ -52,7 +52,7 @@ function AdminDashboard() {
     <div className="p-8 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold">System Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Overview of your platform users and access management.
         </p>

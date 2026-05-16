@@ -28,7 +28,7 @@ import { DataTable } from "@/components/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import type { ColumnDef } from "@tanstack/react-table";
 
-export const Route = createFileRoute("/admin/users")({
+export const Route = createFileRoute("/_authenticated/admin/users")({
   component: AdminUsersPage,
 });
 

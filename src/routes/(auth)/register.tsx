@@ -88,7 +88,7 @@ function RegisterPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Create account</h1>
         <p className="text-sm text-muted-foreground">
-          Sign up and wait for admin approval to access CPipe Tracker.
+          Sign up and wait for admin approval to access CPipeLine.
         </p>
       </div>
 

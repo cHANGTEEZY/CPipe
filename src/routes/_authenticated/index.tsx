@@ -83,7 +83,7 @@ function HomePage() {
             <LayoutDashboard className="size-8 text-primary" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Welcome to CPipe</h2>
+            <h2 className="text-xl font-semibold">Welcome to CPipeLine</h2>
             <p className="text-sm text-muted-foreground">Create your first workspace to get started.</p>
           </div>
           <form onSubmit={handleCreateWorkspace} className="space-y-4 pt-4 text-left">

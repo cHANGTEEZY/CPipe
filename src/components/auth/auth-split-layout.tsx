@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
-const BRAND_NAME = "Admin Panel";
+const BRAND_NAME = "CPipeLine";
 
 interface AuthSplitLayoutProps {
   pathname: string;
@@ -27,7 +27,7 @@ function authPromoCopy(pathname: string): {
 } {
   if (pathname.startsWith("/register")) {
     return {
-      headline: "Modern admin tooling for teams that ship fast.",
+      headline: "Modern operations tooling for teams that ship fast.",
       ctaHref: "/login",
       ctaLabel: "Sign in",
     };
@@ -47,7 +47,7 @@ function authPromoCopy(pathname: string): {
     };
   }
   return {
-    headline: "Powerful dashboards, clear insights, effortless control.",
+    headline: "Powerful pipelines, clear insights, effortless control.",
     ctaHref: "/register",
     ctaLabel: "Join now",
   };
@@ -95,7 +95,7 @@ export function AuthSplitLayout({ pathname, children }: AuthSplitLayoutProps) {
                   {promo.headline}
                 </p>
                 <p className="text-pretty text-sm leading-relaxed text-muted-foreground">
-                  Built for operators who live in dashboards every day — clear,
+                  Built for operators who live in pipelines every day — clear,
                   responsive, and on brand.
                 </p>
               </div>
@@ -118,10 +118,22 @@ export function AuthSplitLayout({ pathname, children }: AuthSplitLayoutProps) {
               to="/login"
               className="flex items-center gap-2.5 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-                AP
-              </span>
-              <span className="font-semibold tracking-tight">{BRAND_NAME}</span>
+              <div className="flex size-9 items-center justify-center rounded-lg bg-primary shadow-lg shadow-primary/20">
+                <svg
+                  className="size-5 text-primary-foreground"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+                  />
+                </svg>
+              </div>
+              <span className="font-semibold tracking-tight text-lg">{BRAND_NAME}</span>
             </Link>
 
             <div className="flex shrink-0 items-center gap-2">

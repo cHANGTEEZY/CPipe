@@ -25,9 +25,10 @@ interface ColumnProps {
   canWrite: boolean;
   canDelete: boolean;
   isGrid?: boolean;
+  isDraggingOverlay?: boolean;
 }
 
-export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDelete, isGrid }: ColumnProps) {
+export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDelete, isGrid, isDraggingOverlay }: ColumnProps) {
   const cards = useQuery(api.cards.listByColumn, { columnId: column._id }) ?? [];
   const renameColumn = useMutation(api.columns.rename);
   const deleteColumn = useMutation(api.columns.remove);
@@ -48,12 +49,12 @@ export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDe
   } = useSortable({
     id: column._id,
     data: { type: "column" },
-    disabled: !canWrite,
+    disabled: !canWrite || isDraggingOverlay,
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: isDraggingOverlay ? undefined : CSS.Translate.toString(transform),
+    transition: isDragging || isDraggingOverlay ? undefined : transition,
   };
 
   const totalPoints = pointsEnabled
@@ -94,40 +95,44 @@ export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDe
       style={style}
       className={cn(
         "flex shrink-0 flex-col rounded-xl border bg-muted/30 backdrop-blur-sm max-h-full transition-colors duration-200",
-        isGrid ? "w-full" : "w-[320px]",
+        isGrid && !isDraggingOverlay ? "w-full" : "w-[320px] max-w-full",
         isDragging && "opacity-40 ring-2 ring-primary",
         isDropTarget && "border-primary/70 bg-primary/5 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
       )}
     >
       {/* Column header */}
-      <div className="flex items-center gap-2 p-3 pb-2">
-        <button
-          {...attributes}
-          {...listeners}
-          disabled={!canWrite}
-          className={cn("text-muted-foreground", canWrite ? "cursor-grab active:cursor-grabbing hover:text-foreground" : "cursor-default opacity-50")}
-        >
+      <div 
+        {...attributes}
+        {...listeners}
+        className={cn(
+          "flex items-center gap-2 p-3 pb-2",
+          canWrite ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+        )}
+      >
+        <div className={cn("text-muted-foreground", !canWrite && "opacity-50")}>
           <GripVertical className="size-4" />
-        </button>
+        </div>
 
         {editing ? (
-          <Input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={handleRename}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleRename();
-              if (e.key === "Escape") {
-                setEditing(false);
-                setName(column.name);
-              }
-            }}
-            className="h-6 flex-1 px-1 text-sm font-semibold"
-          />
+          <div className="flex-1" onClick={(e) => e.stopPropagation()}>
+            <Input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={handleRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRename();
+                if (e.key === "Escape") {
+                  setEditing(false);
+                  setName(column.name);
+                }
+              }}
+              className="h-6 w-full px-1 text-sm font-semibold"
+            />
+          </div>
         ) : (
           <span
-            className="flex-1 text-sm font-semibold leading-none cursor-default"
+            className="flex-1 text-sm font-semibold leading-none truncate"
             onDoubleClick={() => canWrite && setEditing(true)}
           >
             {column.name}
@@ -139,26 +144,28 @@ export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDe
         </span>
 
         {canWrite && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-6 shrink-0">
-                <MoreHorizontal className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setEditing(true)} className="gap-2">
-                <Pencil className="size-4" /> Rename
-              </DropdownMenuItem>
-              {canDelete && (
-                <DropdownMenuItem
-                  onClick={handleDelete}
-                  className="gap-2 text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="size-4" /> Delete column
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-6 shrink-0">
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEditing(true)} className="gap-2">
+                  <Pencil className="size-4" /> Rename
                 </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {canDelete && (
+                  <DropdownMenuItem
+                    onClick={handleDelete}
+                    className="gap-2 text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="size-4" /> Delete column
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
 
@@ -170,7 +177,7 @@ export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDe
           ))}
           {/* Inject placeholder if this column is the active drop target for a card from another column */}
           {isDropTarget && active?.data?.current?.type === "card" && active?.data?.current?.columnId !== column._id && (
-            <div className="rounded-lg border-2 border-dashed border-primary bg-primary/10 opacity-50 h-[100px] w-full transition-all duration-150" />
+            <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 h-[100px] w-full animate-pulse transition-all duration-200" />
           )}
         </SortableContext>
       </div>

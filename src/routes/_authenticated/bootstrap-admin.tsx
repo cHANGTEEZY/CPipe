@@ -26,7 +26,7 @@ function BootstrapAdminPage() {
           </div>
           <h2 className="text-xl font-semibold">Already a Super Admin</h2>
           <p className="text-sm text-muted-foreground">You already have super admin privileges.</p>
-          <Button onClick={() => navigate({ to: "/admin" })}>Go to Admin Panel</Button>
+          <Button onClick={() => navigate({ to: "/admin" })}>Go to System Admin</Button>
         </div>
       </div>
     );
@@ -53,7 +53,7 @@ function BootstrapAdminPage() {
             <Check className="size-8 text-emerald-600" />
           </div>
           <h2 className="text-xl font-semibold">Super Admin activated!</h2>
-          <Button onClick={() => navigate({ to: "/admin" })}>Open Admin Panel</Button>
+          <Button onClick={() => navigate({ to: "/admin" })}>Open System Admin</Button>
         </div>
       </div>
     );

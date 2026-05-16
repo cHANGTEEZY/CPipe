@@ -62,12 +62,14 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
   } = useSortable({
     id: card._id,
     data: { type: "card", card, columnId, order: card.order },
-    disabled: !canWrite,
+    disabled: !canWrite || isDragging,
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: isDragging ? undefined : CSS.Translate.toString(transform),
+    transition: isDragging || isSortableDragging ? undefined : transition,
+    zIndex: isSortableDragging ? 100 : undefined,
+    touchAction: "none",
   };
 
   async function handleDelete(e: React.MouseEvent) {
@@ -87,7 +89,7 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
       <div
         ref={setNodeRef}
         style={style}
-        className="rounded-lg border-2 border-dashed border-primary bg-primary/10 opacity-50 h-[100px] w-full transition-all duration-150"
+        className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 h-[100px] w-full animate-pulse transition-all duration-200"
       />
     );
   }
@@ -97,14 +99,14 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
       <div
         ref={setNodeRef}
         style={style}
-        {...(canWrite ? attributes : {})}
-        {...(canWrite ? listeners : {})}
+        {...attributes}
+        {...listeners}
         className={cn(
-          "group relative flex flex-col gap-2 rounded-lg border bg-card p-3 shadow-sm select-none",
+          "group relative flex flex-col gap-2 rounded-lg border bg-card p-3 shadow-sm select-none w-full max-w-[calc(100vw-2rem)] sm:max-w-[320px]",
           canWrite ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
           "hover:border-primary/40 hover:shadow-md hover:bg-accent/50 transition-all duration-150",
           isDragging && "opacity-50 ring-2 ring-primary shadow-lg cursor-grabbing",
-          isHoveredDropzone && "border-primary bg-primary/10 ring-2 ring-primary ring-opacity-50"
+          isHoveredDropzone && "border-primary bg-primary/5 ring-2 ring-primary/30 -translate-y-1 shadow-md"
         )}
         onClick={() => setDetailOpen(true)}
       >

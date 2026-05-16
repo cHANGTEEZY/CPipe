@@ -10,6 +10,8 @@ import {
   useSensor,
   useSensors,
   closestCorners,
+  pointerWithin,
+  closestCenter,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -45,10 +47,12 @@ export function KanbanBoard({ projectId }: BoardProps) {
 
   const [activeCard, setActiveCard] = useState<any>(null);
   const [activeCardData, setActiveCardData] = useState<any>(null);
+  const [activeColumn, setActiveColumn] = useState<any>(null);
+  const [activeColumnData, setActiveColumnData] = useState<any>(null);
   const [layout, setLayout] = useState<"scroll" | "2" | "3" | "4">("scroll");
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 3 } }),
     useSensor(TouchSensor, {
       activationConstraint: { delay: 200, tolerance: 8 },
     }),
@@ -82,15 +86,23 @@ export function KanbanBoard({ projectId }: BoardProps) {
 
   function onDragStart(event: DragStartEvent) {
     if (!canWrite) return;
-    if (event.active.data.current?.type === "card") {
-      setActiveCard(event.active.id);
-      setActiveCardData(event.active.data.current.card);
+    const { active } = event;
+    const type = active.data.current?.type;
+
+    if (type === "card") {
+      setActiveCard(active.id);
+      setActiveCardData(active.data.current.card);
+    } else if (type === "column") {
+      setActiveColumn(active.id);
+      setActiveColumnData(columns.find((c: any) => c._id === active.id));
     }
   }
 
   async function onDragEnd(event: DragEndEvent) {
     setActiveCard(null);
     setActiveCardData(null);
+    setActiveColumn(null);
+    setActiveColumnData(null);
     if (!canWrite) return;
     const { active, over } = event;
     if (!over) return;
@@ -166,7 +178,7 @@ export function KanbanBoard({ projectId }: BoardProps) {
       {/* Columns */}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={closestCenter}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
@@ -174,8 +186,8 @@ export function KanbanBoard({ projectId }: BoardProps) {
         <div
           className={cn(
             layout === "scroll"
-              ? "flex gap-4 overflow-x-auto pb-4 flex-1 items-start"
-              : `grid gap-4 overflow-y-auto pb-4 flex-1 items-start ${
+              ? "flex gap-4 overflow-x-auto pb-6 flex-1 items-start px-2 custom-scrollbar"
+              : `grid gap-6 overflow-y-auto pb-6 flex-1 items-start px-2 ${
                   layout === "2"
                     ? "grid-cols-1 md:grid-cols-2"
                     : layout === "3"
@@ -204,13 +216,42 @@ export function KanbanBoard({ projectId }: BoardProps) {
               />
             ))}
           </SortableContext>
-          {canWrite && <AddColumnForm projectId={projectId} />}
+          {canWrite && (
+            <div className="shrink-0">
+               <AddColumnForm projectId={projectId} />
+            </div>
+          )}
         </div>
 
-        <DragOverlay>
+        <DragOverlay adjustScale={false} dropAnimation={null}>
           {activeCardData && (
-            <div className="rotate-2 opacity-90">
-              <KanbanCard card={activeCardData} isDragging />
+            <div 
+              style={{ width: "320px", transform: "scale(1)", transformOrigin: "0 0" }} 
+              className="pointer-events-none select-none"
+            >
+              <div className="shadow-2xl rounded-lg overflow-hidden bg-card border-2 border-primary/20">
+                <KanbanCard 
+                  card={activeCardData} 
+                  isDragging 
+                  canWrite={false} 
+                  canDelete={false} 
+                />
+              </div>
+            </div>
+          )}
+          {activeColumnData && (
+            <div 
+              style={{ width: "320px", transform: "scale(1)", transformOrigin: "0 0" }} 
+              className="pointer-events-none select-none opacity-90 shadow-2xl rounded-xl overflow-hidden bg-background"
+            >
+              <KanbanColumn
+                column={activeColumnData}
+                projectId={projectId}
+                pointsEnabled={project.pointsEnabled}
+                canWrite={false}
+                canDelete={false}
+                isDraggingOverlay
+              />
             </div>
           )}
         </DragOverlay>

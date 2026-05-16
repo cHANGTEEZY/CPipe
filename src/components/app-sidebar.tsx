@@ -19,6 +19,7 @@ import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 import {
   LayoutDashboard,
   Settings,
@@ -66,9 +67,13 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      {/* ── Header: Org Switcher ── */}
-      <SidebarHeader className="gap-0 pb-0">
-        <div className="px-2 py-2">
+      {/* ── Header: Brand + Org Switcher ── */}
+      <SidebarHeader className="gap-2 px-4 py-4 border-b">
+        <Logo className="group-data-[collapsible=icon]:hidden" />
+        <div className="flex items-center justify-center size-9 rounded-xl bg-primary shadow-lg shadow-primary/20 hidden group-data-[collapsible=icon]:flex">
+          <Activity className="size-5 text-primary-foreground" strokeWidth={2.5} />
+        </div>
+        <div className="mt-2">
           <OrgSwitcher />
         </div>
       </SidebarHeader>
@@ -140,23 +145,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* ── Admin Panel link (super admin only) ── */}
+        {/* ── System Administration (super admin only) ── */}
         {isSuperAdmin && (
           <>
             <SidebarSeparator />
             <SidebarGroup>
-              <SidebarGroupLabel>Administration</SidebarGroupLabel>
+              <SidebarGroupLabel>System</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
-                      tooltip="Admin Panel"
+                      tooltip="System Admin"
                       isActive={location.pathname.startsWith("/admin")}
                     >
                       <Link to="/admin">
-                        <Shield />
-                        <span>Admin Panel</span>
+                        <Shield className="text-primary" />
+                        <span>System Admin</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
