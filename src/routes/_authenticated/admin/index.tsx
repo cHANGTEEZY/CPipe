@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { Users, UserCheck, UserX, Clock, TrendingUp } from "lucide-react";
+import { Users, UserCheck, UserX, Clock, TrendingUp, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminDashboard,
@@ -42,8 +43,15 @@ function AdminDashboard() {
   const users = useQuery(api.users.listAll) ?? [];
 
   const totalUsers = users.length;
-  const pending = users.filter((u: any) => !u.profile?.status || u.profile?.status === "pending").length;
-  const approved = users.filter((u: any) => u.profile?.status === "approved").length;
+  const approved = users.filter(
+    (u: any) =>
+      u.profile?.superAdmin ||
+      !u.profile?.status ||
+      u.profile?.status === "approved",
+  ).length;
+  const pending = users.filter(
+    (u: any) => u.profile?.status === "pending",
+  ).length;
   const rejected = users.filter((u: any) => u.profile?.status === "rejected").length;
   const suspended = users.filter((u: any) => u.profile?.status === "suspended").length;
   const banned = users.filter((u: any) => u.profile?.status === "banned").length;
@@ -68,11 +76,11 @@ function AdminDashboard() {
           description="All registered accounts"
         />
         <StatCard
-          title="Pending Approval"
+          title="Legacy pending"
           value={pending}
           icon={Clock}
           color="bg-amber-500/10 text-amber-600"
-          description="Awaiting admin review"
+          description="Old accounts not yet migrated"
         />
         <StatCard
           title="Approved"
@@ -104,18 +112,22 @@ function AdminDashboard() {
         />
       </div>
 
-      {/* Recent pending users */}
-      {pending > 0 && (
-        <div className="rounded-xl border bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 p-5">
-          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium text-sm mb-2">
-            <Clock className="size-4" />
-            {pending} user{pending !== 1 ? "s" : ""} pending approval
-          </div>
-          <p className="text-xs text-amber-600 dark:text-amber-500">
-            Go to the <strong>Users</strong> page to review and approve or reject pending accounts.
+      <div className="rounded-xl border bg-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="font-semibold text-sm">User management</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            View all accounts, suspend, ban, or delete users.
+            {pending > 0 &&
+              ` ${pending} legacy account${pending !== 1 ? "s" : ""} still marked pending.`}
           </p>
         </div>
-      )}
+        <Button asChild size="sm" className="gap-2 shrink-0">
+          <Link to="/admin/users">
+            Manage users
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }

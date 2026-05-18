@@ -23,6 +23,7 @@ import {
   Users,
   Activity,
   Shield,
+  UserCog,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -31,7 +32,53 @@ export function AppSidebar() {
   const me = useQuery(api.users.getMe);
   const isSuperAdmin = me?.profile?.superAdmin === true;
 
+  if (isSuperAdmin) {
+    const adminLinks = [
+      { title: "Dashboard", icon: Shield, to: "/admin" },
+      { title: "Users", icon: UserCog, to: "/admin/users" },
+    ];
 
+    return (
+      <Sidebar collapsible="icon">
+        <SidebarHeader className="gap-2 px-4 py-4 border-b">
+          <Logo className="group-data-[collapsible=icon]:hidden" />
+          <div className="flex items-center justify-center size-9 rounded-xl bg-primary shadow-lg shadow-primary/20 hidden group-data-[collapsible=icon]:flex">
+            <Shield className="size-5 text-primary-foreground" strokeWidth={2.5} />
+          </div>
+        </SidebarHeader>
+
+        <SidebarContent>
+          <SidebarGroup className="pt-2">
+            <SidebarGroupLabel>System</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminLinks.map((item) => {
+                  const isActive =
+                    item.to === "/admin"
+                      ? location.pathname === "/admin"
+                      : location.pathname.startsWith(item.to);
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.title}
+                        isActive={isActive}
+                      >
+                        <Link to={item.to}>
+                          <item.icon className="text-primary" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </Sidebar>
+    );
+  }
 
   const projectLinks = activeProjectId
     ? [
@@ -55,7 +102,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      {/* ── Header: Brand + Org Switcher ── */}
       <SidebarHeader className="gap-2 px-4 py-4 border-b">
         <Logo className="group-data-[collapsible=icon]:hidden" />
         <div className="flex items-center justify-center size-9 rounded-xl bg-primary shadow-lg shadow-primary/20 hidden group-data-[collapsible=icon]:flex">
@@ -67,7 +113,6 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* ── Project Switcher ── */}
         <SidebarGroup className="pt-2 pb-1">
           <SidebarGroupLabel>Project</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -77,7 +122,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* ── Project-scoped nav ── */}
         {projectLinks.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel>Current project</SidebarGroupLabel>
@@ -107,7 +151,6 @@ export function AppSidebar() {
 
         <SidebarSeparator />
 
-        {/* ── Global nav ── */}
         <SidebarGroup>
           <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -132,34 +175,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* ── System Administration (super admin only) ── */}
-        {isSuperAdmin && (
-          <>
-            <SidebarSeparator />
-            <SidebarGroup>
-              <SidebarGroupLabel>System</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip="System Admin"
-                      isActive={location.pathname.startsWith("/admin")}
-                    >
-                      <Link to="/admin">
-                        <Shield className="text-primary" />
-                        <span>System Admin</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
-        )}
       </SidebarContent>
-
     </Sidebar>
   );
 }

@@ -86,12 +86,12 @@ export const initNewUser = mutation({
     const displayName = [firstName, lastName].filter(Boolean).join(" ") || undefined;
     // Don't overwrite superAdmin status if it already exists
     if (existing) {
-      if (existing.superAdmin) return; // superadmin stays approved
+      if (existing.superAdmin) return;
       await ctx.db.patch(existing._id, {
         firstName,
         lastName,
         displayName,
-        status: "pending",
+        status: "approved",
       });
     } else {
       await ctx.db.insert("userProfiles", {
@@ -99,7 +99,7 @@ export const initNewUser = mutation({
         firstName,
         lastName,
         displayName,
-        status: "pending",
+        status: "approved",
       });
     }
 
@@ -108,9 +108,31 @@ export const initNewUser = mutation({
       await ctx.scheduler.runAfter(0, internal.emails.sendStatusEmail, {
         email: user.email,
         name: displayName || user.name || "User",
-        status: "pending",
+        status: "approved",
       });
     }
+  },
+});
+
+/** Ensure profile exists (e.g. OAuth sign-up) — auto-approved */
+export const ensureProfile = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+    const existing = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (q: any) => q.eq("userId", userId))
+      .unique();
+    if (existing) {
+      if (
+        !existing.superAdmin &&
+        (!existing.status || existing.status === "pending")
+      ) {
+        await ctx.db.patch(existing._id, { status: "approved" });
+      }
+      return;
+    }
+    await ctx.db.insert("userProfiles", { userId, status: "approved" });
   },
 });
 

@@ -64,8 +64,8 @@ function RegisterPage() {
         }
       }
 
-      toast.success("Account created! Awaiting admin approval.")
-      navigate({ to: "/pending" })
+      toast.success("Account created! You can sign in now.")
+      navigate({ to: "/" })
     } catch (err: any) {
       toast.error(err.message ?? "Registration failed")
     } finally {
@@ -88,7 +88,7 @@ function RegisterPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Create account</h1>
         <p className="text-sm text-muted-foreground">
-          Sign up and wait for admin approval to access CPipeLine.
+          Sign up to start using CPipeLine.
         </p>
       </div>
 

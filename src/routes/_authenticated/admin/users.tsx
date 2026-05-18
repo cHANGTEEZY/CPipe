@@ -44,8 +44,8 @@ const STATUS_META: Record<
 };
 
 function StatusBadge({ status }: { status?: string }) {
-  const s = status ?? "pending";
-  const meta = STATUS_META[s] ?? STATUS_META.pending;
+  const s = status ?? "approved";
+  const meta = STATUS_META[s] ?? STATUS_META.approved;
   return (
     <Badge variant="outline" className={`text-xs font-medium ${meta.color}`}>
       {meta.label}
@@ -102,7 +102,7 @@ function AdminUsersPage() {
     return users.map((u: any) => ({
       ...u,
       displayName: u.profile?.displayName ?? u.name ?? "Unknown",
-      status: u.profile?.status ?? "pending",
+      status: u.profile?.status ?? "approved",
       isSuperAdmin: u.profile?.superAdmin === true,
       avatarUrl: u.profile?.avatarUrl,
     }));
@@ -309,7 +309,7 @@ function AdminUsersPage() {
             User Management
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Approve, reject, suspend, or ban users. Only approved users can access the app.
+            View all platform users. Suspend, ban, or delete accounts as needed.
           </p>
         </div>
         {pendingCount > 0 && (

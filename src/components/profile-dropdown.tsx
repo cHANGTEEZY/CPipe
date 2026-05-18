@@ -18,6 +18,7 @@ const ProfileDropDown = () => {
   const me = useQuery(api.users.getMe);
   const { signOut } = useAuthActions();
 
+  const isSuperAdmin = me?.profile?.superAdmin === true;
   const displayName =
     me?.profile?.displayName ?? me?.name ?? "User";
   const initials = displayName
@@ -53,9 +54,16 @@ const ProfileDropDown = () => {
           <DropdownMenuItem asChild className="cursor-pointer">
             <Link to="/profile">Profile</Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild className="cursor-pointer">
-            <Link to="/settings/members">Settings</Link>
-          </DropdownMenuItem>
+          {!isSuperAdmin && (
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link to="/settings/members">Settings</Link>
+            </DropdownMenuItem>
+          )}
+          {isSuperAdmin && (
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link to="/admin/users">User management</Link>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
