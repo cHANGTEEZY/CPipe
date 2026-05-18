@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   DndContext,
   type DragEndEvent,
@@ -30,6 +30,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+  buildCardsById,
+  getCardDragBlockReason,
+  type KanbanCard as KanbanCardModel,
+  type KanbanColumn as KanbanColumnModel,
+} from "@/lib/card-dependency";
+import { toast } from "sonner";
 
 interface BoardProps {
   projectId: Id<"projects">;
@@ -37,6 +44,12 @@ interface BoardProps {
 
 export function KanbanBoard({ projectId }: BoardProps) {
   const columns = useQuery(api.columns.list, { projectId }) ?? [];
+  const projectCards =
+    useQuery(api.cards.listByProject, { projectId }) ?? [];
+  const cardsById = useMemo(
+    () => buildCardsById(projectCards as KanbanCardModel[]),
+    [projectCards],
+  );
   const project = useQuery(api.projects.get, { projectId });
   const moveCard = useMutation(api.cards.move);
   const reorderColumns = useMutation(api.columns.reorder);
@@ -86,7 +99,17 @@ export function KanbanBoard({ projectId }: BoardProps) {
     const type = currentData.type;
 
     if (type === "card") {
-      setActiveCardData(currentData.card);
+      const card = currentData.card as KanbanCardModel;
+      const reason = getCardDragBlockReason(
+        card,
+        columns as KanbanColumnModel[],
+        cardsById,
+      );
+      if (reason) {
+        toast.error(reason);
+        return;
+      }
+      setActiveCardData(card);
     } else if (type === "column") {
       setActiveColumnData(columns.find((c: any) => c._id === active.id));
     }
@@ -133,11 +156,17 @@ export function KanbanBoard({ projectId }: BoardProps) {
           : (over.data.current?.columnId as Id<"columns">);
       if (!toColumnId) return;
 
-      await moveCard({
-        cardId: active.id as Id<"cards">,
-        toColumnId,
-        newOrder: over.data.current?.order ?? 0,
-      });
+      try {
+        await moveCard({
+          cardId: active.id as Id<"cards">,
+          toColumnId,
+          newOrder: over.data.current?.order ?? 0,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to move card";
+        toast.error(message);
+      }
     }
   }
 
@@ -208,6 +237,8 @@ export function KanbanBoard({ projectId }: BoardProps) {
                 key={col._id}
                 column={col}
                 projectId={projectId}
+                columns={columns}
+                cardsById={cardsById}
                 pointsEnabled={project.pointsEnabled}
                 canWrite={!!canWrite}
                 canDelete={!!canDelete}
@@ -244,6 +275,8 @@ export function KanbanBoard({ projectId }: BoardProps) {
               <KanbanColumn
                 column={activeColumnData}
                 projectId={projectId}
+                columns={columns}
+                cardsById={cardsById}
                 pointsEnabled={project.pointsEnabled}
                 canWrite={false}
                 canDelete={false}

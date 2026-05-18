@@ -7,7 +7,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { CardDetailModal } from "./card-detail-modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, MessageSquare, Flag } from "lucide-react";
+import { Trash2, MessageSquare, Flag, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTagLabel } from "@/lib/tag-utils";
 import { toast } from "sonner";
@@ -47,9 +47,18 @@ interface CardProps {
   isDragging?: boolean;
   canWrite?: boolean;
   canDelete?: boolean;
+  dragBlockReason?: string | null;
 }
 
-export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDelete = true }: CardProps) {
+export function KanbanCard({
+  card,
+  columnId,
+  isDragging,
+  canWrite = true,
+  canDelete = true,
+  dragBlockReason = null,
+}: CardProps) {
+  const isDragBlocked = !!dragBlockReason;
   const [detailOpen, setDetailOpen] = useState(false);
   const removeCard = useMutation(api.cards.remove);
   
@@ -72,7 +81,7 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
   } = useSortable({
     id: card._id,
     data: { type: "card", card, columnId, order: card.order },
-    disabled: !canWrite || isDragging,
+    disabled: !canWrite || isDragging || isDragBlocked,
   });
 
   const style = {
@@ -107,7 +116,10 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
             ? (PRIORITY_BG_COLORS[card.priority] ??
               "bg-card hover:bg-accent/50 hover:border-primary/40")
             : "bg-card hover:bg-accent/50 hover:border-primary/40",
-          canWrite ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+          canWrite && !isDragBlocked
+            ? "cursor-grab active:cursor-grabbing"
+            : "cursor-pointer",
+          isDragBlocked && "border-amber-500/40 bg-amber-500/[0.04]",
           isSortableDragging && "opacity-40 scale-[0.98] shadow-none",
           isDragging && "opacity-90 ring-2 ring-primary shadow-lg cursor-grabbing",
           isHoveredDropzone && "border-primary bg-primary/5 ring-2 ring-primary/30 shadow-md"
@@ -148,7 +160,7 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
                    PRIORITY_COLORS[card.priority] ?? "text-muted-foreground",
                  )}
                  fill="currentColor"
-                 title={formatTagLabel(card.priority)}
+                 aria-label={formatTagLabel(card.priority)}
                />
              )}
           </div>
@@ -158,6 +170,13 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
         <p className="text-sm font-medium leading-snug transition-all duration-150 line-clamp-2">
           {card.title}
         </p>
+
+        {dragBlockReason && (
+          <div className="flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2 py-1.5 text-[10px] leading-snug text-amber-800 dark:text-amber-200">
+            <Lock className="size-3 shrink-0 mt-0.5" />
+            <span>{dragBlockReason}</span>
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">

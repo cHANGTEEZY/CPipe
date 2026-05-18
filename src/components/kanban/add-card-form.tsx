@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,9 @@ import { X } from "lucide-react";
 import { toast } from "sonner";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import type { DateRange } from "react-day-picker";
-import { CustomTagField } from "./custom-tag-field";
-import {
-  LABEL_PRESETS,
-  PRIORITY_PRESETS,
-  STATUS_PRESETS,
-} from "./card-tag-presets";
+import { ProjectOptionSelect } from "./project-option-select";
+import { ProjectLabelSelect } from "./project-label-select";
+import { CardDependencyFields } from "./card-dependency-fields";
 
 interface AddCardFormProps {
   columnId: Id<"columns">;
@@ -27,8 +24,12 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
   const [labels, setLabels] = useState<string[]>([]);
+  const [dependsOnCardId, setDependsOnCardId] = useState("");
+  const [dependsOnColumnId, setDependsOnColumnId] = useState("");
   const [loading, setLoading] = useState(false);
   const createCard = useMutation(api.cards.create);
+  const columns = useQuery(api.columns.list, { projectId }) ?? [];
+  const projectCards = useQuery(api.cards.listByProject, { projectId }) ?? [];
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,6 +47,10 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
       toast.error("Timeline is required");
       return;
     }
+    if (dependsOnCardId && !dependsOnColumnId) {
+      toast.error("Select the required column for the dependency");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -58,12 +63,20 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
         dueDate: dateRange.to.getTime(),
         status: status || undefined,
         priority: priority || undefined,
+        dependsOnCardId: dependsOnCardId
+          ? (dependsOnCardId as Id<"cards">)
+          : undefined,
+        dependsOnColumnId: dependsOnColumnId
+          ? (dependsOnColumnId as Id<"columns">)
+          : undefined,
       });
       setTitle("");
       setDateRange(undefined);
       setStatus("");
       setPriority("");
       setLabels([]);
+      setDependsOnCardId("");
+      setDependsOnColumnId("");
       inputRef.current?.focus();
       toast.success("Card created");
     } catch (err: unknown) {
@@ -92,26 +105,35 @@ export function AddCardForm({ columnId, projectId, onClose }: AddCardFormProps) 
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <CustomTagField
+        <ProjectOptionSelect
+          projectId={projectId}
+          field="status"
           label="Status"
-          presets={STATUS_PRESETS}
           value={status}
           onChange={setStatus}
         />
-        <CustomTagField
+        <ProjectOptionSelect
+          projectId={projectId}
+          field="priority"
           label="Priority"
-          presets={PRIORITY_PRESETS}
           value={priority}
           onChange={setPriority}
         />
       </div>
 
-      <CustomTagField
-        mode="multi"
-        label="Labels"
-        presets={LABEL_PRESETS}
+      <ProjectLabelSelect
+        projectId={projectId}
         values={labels}
         onChange={setLabels}
+      />
+
+      <CardDependencyFields
+        columns={columns}
+        projectCards={projectCards}
+        dependsOnCardId={dependsOnCardId}
+        dependsOnColumnId={dependsOnColumnId}
+        onDependsOnCardChange={setDependsOnCardId}
+        onDependsOnColumnChange={setDependsOnColumnId}
       />
 
       <div className="space-y-1.5">

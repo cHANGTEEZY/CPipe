@@ -19,12 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CustomTagField } from "./custom-tag-field";
-import {
-  LABEL_PRESETS,
-  PRIORITY_PRESETS,
-  STATUS_PRESETS,
-} from "./card-tag-presets";
+import { ProjectOptionSelect } from "./project-option-select";
+import { ProjectLabelSelect } from "./project-label-select";
+import { CardDependencyFields } from "./card-dependency-fields";
 import { MessageSquare, Clock, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,6 +52,12 @@ export function CardDetailModal({
   );
   const [status, setStatus] = useState<string>(card.status ?? "");
   const [priority, setPriority] = useState<string>(card.priority ?? "");
+  const [dependsOnCardId, setDependsOnCardId] = useState<string>(
+    card.dependsOnCardId ?? "",
+  );
+  const [dependsOnColumnId, setDependsOnColumnId] = useState<string>(
+    card.dependsOnColumnId ?? "",
+  );
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: card.startDate ? new Date(card.startDate) : undefined,
     to: card.dueDate ? new Date(card.dueDate) : undefined,
@@ -71,6 +74,8 @@ export function CardDetailModal({
       setAssigneeId(card.assigneeId ?? "unassigned");
       setStatus(card.status ?? "");
       setPriority(card.priority ?? "");
+      setDependsOnCardId(card.dependsOnCardId ?? "");
+      setDependsOnColumnId(card.dependsOnColumnId ?? "");
       setDateRange({
         from: card.startDate ? new Date(card.startDate) : undefined,
         to: card.dueDate ? new Date(card.dueDate) : undefined,
@@ -88,6 +93,9 @@ export function CardDetailModal({
     limit: 20,
   });
   const project = useQuery(api.projects.get, { projectId: card.projectId });
+  const columns = useQuery(api.columns.list, { projectId: card.projectId }) ?? [];
+  const projectCards =
+    useQuery(api.cards.listByProject, { projectId: card.projectId }) ?? [];
   const members = useQuery(
     api.members.list,
     project?.workspaceId ? { workspaceId: project.workspaceId } : "skip",
@@ -102,8 +110,8 @@ export function CardDetailModal({
       toast.error("Description is required");
       return;
     }
-    if (assigneeId === "unassigned") {
-      toast.error("Assignee is required");
+    if (dependsOnCardId && !dependsOnColumnId) {
+      toast.error("Select the required column for the dependency");
       return;
     }
     if (!dateRange?.from || !dateRange?.to) {
@@ -117,11 +125,20 @@ export function CardDetailModal({
         title: title.trim(),
         description: description.trim(),
         labels,
-        assigneeId: assigneeId as Id<"users">,
+        assigneeId:
+          assigneeId === "unassigned"
+            ? null
+            : (assigneeId as Id<"users">),
         startDate: dateRange.from.getTime(),
         dueDate: dateRange.to.getTime(),
         status: status || null,
         priority: priority || null,
+        dependsOnCardId: dependsOnCardId
+          ? (dependsOnCardId as Id<"cards">)
+          : null,
+        dependsOnColumnId: dependsOnColumnId
+          ? (dependsOnColumnId as Id<"columns">)
+          : null,
       });
       toast.success("Card updated");
     } catch (err: any) {
@@ -165,25 +182,29 @@ export function CardDetailModal({
 
           <div className="grid gap-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <CustomTagField
+              <ProjectOptionSelect
+                projectId={card.projectId}
+                field="status"
                 label="Status"
-                presets={STATUS_PRESETS}
                 value={status}
                 onChange={setStatus}
                 disabled={!canWrite}
+                canManage={canWrite}
               />
-              <CustomTagField
+              <ProjectOptionSelect
+                projectId={card.projectId}
+                field="priority"
                 label="Priority"
-                presets={PRIORITY_PRESETS}
                 value={priority}
                 onChange={setPriority}
                 disabled={!canWrite}
+                canManage={canWrite}
               />
             </div>
 
             <div className="space-y-2">
                 <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                  Assignee <span className="text-destructive">*</span>
+                  Assignee
                 </Label>
                 <Select
                   value={assigneeId}
@@ -223,12 +244,22 @@ export function CardDetailModal({
               />
             </div>
 
-            <CustomTagField
-              mode="multi"
-              label="Labels"
-              presets={LABEL_PRESETS}
+            <ProjectLabelSelect
+              projectId={card.projectId}
               values={labels}
               onChange={setLabels}
+              disabled={!canWrite}
+              canManage={canWrite}
+            />
+
+            <CardDependencyFields
+              columns={columns}
+              projectCards={projectCards}
+              excludeCardId={card._id}
+              dependsOnCardId={dependsOnCardId}
+              dependsOnColumnId={dependsOnColumnId}
+              onDependsOnCardChange={setDependsOnCardId}
+              onDependsOnColumnChange={setDependsOnColumnId}
               disabled={!canWrite}
             />
 

@@ -6,18 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { formatTagLabel, normalizeTag } from "@/lib/tag-utils";
 import { toast } from "sonner";
-
-const NONE = "__none__";
+import { cn } from "@/lib/utils";
 
 type OptionField = "status" | "priority";
 
@@ -45,6 +41,7 @@ export function ProjectOptionSelect({
   disabled,
   canManage = true,
 }: ProjectOptionSelectProps) {
+  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const project = useQuery(api.projects.get, { projectId });
   const addOption = useMutation(api.projectFields.addOption);
@@ -52,6 +49,8 @@ export function ProjectOptionSelect({
 
   const options =
     (project?.[FIELD_TO_KEY[field]] as string[] | undefined) ?? [];
+
+  const displayValue = value ? formatTagLabel(value) : "None";
 
   async function handleAdd() {
     const normalized = normalizeTag(draft);
@@ -66,7 +65,8 @@ export function ProjectOptionSelect({
     }
   }
 
-  async function handleRemove(option: string) {
+  async function handleRemove(option: string, e: React.MouseEvent) {
+    e.stopPropagation();
     try {
       await removeOption({ projectId, field, value: option });
       if (value === option) onChange("");
@@ -78,87 +78,133 @@ export function ProjectOptionSelect({
     }
   }
 
+  function selectOption(next: string) {
+    onChange(next);
+    setOpen(false);
+  }
+
   return (
     <div className="space-y-2">
       <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
         {label}
       </Label>
-      <Select
-        value={value || NONE}
-        onValueChange={(v) => onChange(v === NONE ? "" : v)}
-        disabled={disabled}
-      >
-        <SelectTrigger className="w-full h-9">
-          <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={NONE}>None</SelectItem>
-          {options.map((opt) => (
-            <SelectItem key={opt} value={opt}>
-              {formatTagLabel(opt)}
-            </SelectItem>
-          ))}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild disabled={disabled}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={disabled}
+            className={cn(
+              "w-full h-9 justify-between font-normal",
+              !value && "text-muted-foreground",
+            )}
+          >
+            <span className="truncate">{displayValue}</span>
+            <ChevronDown className="size-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-[var(--radix-popover-trigger-width)] p-1"
+        >
+          <ul className="max-h-56 overflow-y-auto">
+            <li>
+              <OptionRow
+                selected={!value}
+                onSelect={() => selectOption("")}
+                label="None"
+              />
+            </li>
+            {options.map((opt) => (
+              <li key={opt}>
+                <OptionRow
+                  selected={value === opt}
+                  onSelect={() => selectOption(opt)}
+                  label={formatTagLabel(opt)}
+                  onDelete={
+                    canManage && !disabled
+                      ? (e) => void handleRemove(opt, e)
+                      : undefined
+                  }
+                />
+              </li>
+            ))}
+          </ul>
 
           {canManage && !disabled && (
-            <>
-              <SelectSeparator />
-              <div
-                className="p-2 space-y-2"
-                onPointerDown={(e) => e.stopPropagation()}
+            <div
+              className="flex gap-2 border-t border-border/60 p-2 mt-1"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <Input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Add option…"
+                className="h-8 text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void handleAdd();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="size-8 shrink-0"
+                onClick={() => void handleAdd()}
+                disabled={!draft.trim()}
+                aria-label="Add option"
               >
-                <p className="text-[10px] font-semibold uppercase text-muted-foreground px-1">
-                  Manage options
-                </p>
-                <motion.div className="flex gap-2">
-                  <Input
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    placeholder="New option…"
-                    className="h-8 text-xs"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        void handleAdd();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-8 shrink-0"
-                    onClick={() => void handleAdd()}
-                    disabled={!draft.trim()}
-                  >
-                    <Plus className="size-3.5" />
-                  </Button>
-                </motion.div>
-                {options.length > 0 && (
-                  <ul className="max-h-32 overflow-y-auto space-y-1">
-                    {options.map((opt) => (
-                      <li
-                        key={opt}
-                        className="flex items-center justify-between gap-2 rounded-md px-2 py-1 text-xs hover:bg-muted"
-                      >
-                        <span>{formatTagLabel(opt)}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-6 text-destructive hover:text-destructive"
-                          onClick={() => void handleRemove(opt)}
-                        >
-                          <Trash2 className="size-3" />
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </motion.div>
-            </>
+                <Plus className="size-3.5" />
+              </Button>
+            </div>
           )}
-        </SelectContent>
-      </Select>
-    </motion.div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+function OptionRow({
+  label,
+  selected,
+  onSelect,
+  onDelete,
+}: {
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+  onDelete?: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-md hover:bg-muted/80">
+      <button
+        type="button"
+        className="flex flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm min-w-0"
+        onClick={onSelect}
+      >
+        <Check
+          className={cn(
+            "size-3.5 shrink-0",
+            selected ? "opacity-100" : "opacity-0",
+          )}
+        />
+        <span className="truncate">{label}</span>
+      </button>
+      {onDelete && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
+          onClick={onDelete}
+          aria-label={`Remove ${label}`}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      )}
+    </div>
   );
 }

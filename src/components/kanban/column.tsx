@@ -18,10 +18,17 @@ import { MoreHorizontal, GripVertical, Pencil, Trash2, Plus } from "lucide-react
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { NumberTicker } from "@/components/ui/number-ticker";
+import {
+  getCardDragBlockReason,
+  type KanbanCard as KanbanCardModel,
+  type KanbanColumn as KanbanColumnModel,
+} from "@/lib/card-dependency";
 
 interface ColumnProps {
   column: any;
   projectId: Id<"projects">;
+  columns: KanbanColumnModel[];
+  cardsById: Map<string, KanbanCardModel>;
   pointsEnabled: boolean;
   canWrite: boolean;
   canDelete: boolean;
@@ -29,7 +36,17 @@ interface ColumnProps {
   isDraggingOverlay?: boolean;
 }
 
-export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDelete, isGrid, isDraggingOverlay }: ColumnProps) {
+export function KanbanColumn({
+  column,
+  projectId,
+  columns,
+  cardsById,
+  pointsEnabled,
+  canWrite,
+  canDelete,
+  isGrid,
+  isDraggingOverlay,
+}: ColumnProps) {
   const cards = useQuery(api.cards.listByColumn, { columnId: column._id }) ?? [];
   const renameColumn = useMutation(api.columns.rename);
   const deleteColumn = useMutation(api.columns.remove);
@@ -176,9 +193,23 @@ export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDe
       {/* Cards */}
       <div className="flex flex-col gap-2 px-3 flex-1 overflow-y-auto max-h-[calc(100vh-260px)]">
         <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-          {cards.map((card: any) => (
-            <KanbanCard key={card._id} card={card} columnId={column._id} canWrite={canWrite} canDelete={canDelete} />
-          ))}
+          {cards.map((card: any) => {
+            const blockReason = getCardDragBlockReason(
+              card,
+              columns,
+              cardsById,
+            );
+            return (
+              <KanbanCard
+                key={card._id}
+                card={card}
+                columnId={column._id}
+                canWrite={canWrite}
+                canDelete={canDelete}
+                dragBlockReason={blockReason}
+              />
+            );
+          })}
         </SortableContext>
       </div>
 
