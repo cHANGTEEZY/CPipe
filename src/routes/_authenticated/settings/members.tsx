@@ -90,12 +90,28 @@ function RoleBadge({ role }: { role: string }) {
 
 function MembersPage() {
   const { activeWorkspaceId } = useAppStore();
+  const myMembership = useQuery(
+    api.members.getMyMembership,
+    activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
+  );
   const members =
     useQuery(
       api.members.list,
       activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip"
     ) ?? [];
-  const inviteMember = useMutation(api.members.invite);
+  const canManageInvites =
+    myMembership?.role === "owner" || myMembership?.role === "admin";
+  const canManageRoles = myMembership?.role === "owner";
+
+  const inviteMember = useMutation(api.invites.create);
+  const cancelInvite = useMutation(api.invites.cancel);
+  const pendingInvites =
+    useQuery(
+      api.invites.listByWorkspace,
+      activeWorkspaceId && canManageInvites
+        ? { workspaceId: activeWorkspaceId }
+        : "skip",
+    ) ?? [];
   const updateRole = useMutation(api.members.updateRole);
   const removeMember = useMutation(api.members.remove);
 
@@ -117,6 +133,15 @@ function MembersPage() {
         </div>
       </div>
     );
+  }
+
+  async function handleCancelInvite(inviteId: Id<"invites">) {
+    try {
+      await cancelInvite({ inviteId });
+      toast.success("Invite cancelled");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel invite");
+    }
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -189,7 +214,7 @@ function MembersPage() {
         </Badge>
       </div>
 
-      {/* Invite section */}
+      {canManageInvites && (
       <div className="rounded-xl border bg-card p-5 space-y-4">
         <h2 className="text-sm font-semibold flex items-center gap-2">
           <UserPlus className="size-4 text-primary" />
@@ -223,9 +248,42 @@ function MembersPage() {
           </Button>
         </form>
         <p className="text-xs text-muted-foreground">
-          The user must have an account. They'll receive an invite link valid for 7 days.
+          They&apos;ll get an email with a link and see the invite in-app when signed
+          in with that email. Invites expire after 7 days.
         </p>
       </div>
+      )}
+
+      {canManageInvites && pendingInvites.length > 0 && (
+        <div className="rounded-xl border bg-muted/30 p-5 space-y-3">
+          <h2 className="text-sm font-semibold">Pending invitations</h2>
+          <ul className="space-y-2">
+            {pendingInvites.map((inv) => (
+              <li
+                key={inv._id}
+                className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{inv.email}</p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {inv.role} · expires{" "}
+                    {new Date(inv.expiresAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive shrink-0"
+                  onClick={() => void handleCancelInvite(inv._id)}
+                >
+                  Cancel
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Search */}
       <div className="flex items-center gap-3">
@@ -247,7 +305,9 @@ function MembersPage() {
               <TableHead className="hidden sm:table-cell">Email</TableHead>
               <TableHead>Role</TableHead>
               <TableHead className="hidden md:table-cell">Joined</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {canManageRoles && (
+                <TableHead className="text-right">Actions</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -295,8 +355,13 @@ function MembersPage() {
                     <TableCell className="hidden md:table-cell">
                       <span className="text-xs text-muted-foreground">{joinedDate}</span>
                     </TableCell>
+                    {canManageRoles && (
                     <TableCell className="text-right">
-                      {m.role !== "owner" ? (
+                      {m.role === "owner" ? (
+                        <span className="text-xs text-muted-foreground pr-2">
+                          Owner
+                        </span>
+                      ) : canManageRoles ? (
                         <div className="flex items-center justify-end gap-2">
                           <Select
                             value={m.role}
@@ -321,9 +386,12 @@ function MembersPage() {
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground pr-2">Owner</span>
+                        <span className="text-xs text-muted-foreground pr-2">
+                          —
+                        </span>
                       )}
                     </TableCell>
+                    )}
                   </TableRow>
                 );
               })

@@ -8,16 +8,28 @@ async function requireAuth(ctx: any) {
   return userId;
 }
 
-/** Get activity log for a workspace (paginated) */
+async function requireWorkspaceMember(ctx: any, workspaceId: any) {
+  const userId = await requireAuth(ctx);
+  const member = await ctx.db
+    .query("members")
+    .withIndex("by_workspace_user", (q: any) =>
+      q.eq("workspaceId", workspaceId).eq("userId", userId),
+    )
+    .unique();
+  if (!member) throw new Error("Not a member of this workspace");
+  return { userId, member };
+}
+
+/** Get activity log for a workspace (any workspace member) */
 export const listByWorkspace = query({
   args: { workspaceId: v.id("workspaces"), limit: v.optional(v.number()) },
   handler: async (ctx, { workspaceId, limit }) => {
-    await requireAuth(ctx);
+    await requireWorkspaceMember(ctx, workspaceId);
     const logs = await ctx.db
       .query("activity")
       .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
       .order("desc")
-      .take(limit ?? 50);
+      .take(limit ?? 200);
     
     const enriched = await Promise.all(
       logs.map(async (log: any) => {
@@ -49,13 +61,50 @@ export const listByWorkspace = query({
           const workspace = await ctx.db.get(log.entityId as any);
           targetName = (workspace as any)?.name || "Deleted Workspace";
         } else if (log.entityType === "member") {
-          const member = await ctx.db.get(log.entityId as any);
-          if (member) {
-            const memberUser = await ctx.db.get((member as any).userId);
-            targetName = (memberUser as any)?.name || "Unknown Member";
-          } else if (log.meta?.removedUserId) {
-             const removedUser = await ctx.db.get(log.meta.removedUserId as any);
-             targetName = (removedUser as any)?.name || "Removed Member";
+          if (log.meta?.targetName) {
+            targetName = log.meta.targetName;
+          } else if (log.meta?.targetUserId) {
+            const targetUser = await ctx.db.get(log.meta.targetUserId as any);
+            const targetProfile = await ctx.db
+              .query("userProfiles")
+              .withIndex("by_userId", (q: any) =>
+                q.eq("userId", log.meta.targetUserId),
+              )
+              .unique();
+            targetName =
+              targetProfile?.displayName ??
+              targetUser?.name ??
+              targetUser?.email ??
+              "Member";
+          } else {
+            const member = await ctx.db.get(log.entityId as any);
+            if (member) {
+              const memberUser = await ctx.db.get((member as any).userId);
+              const memberProfile = await ctx.db
+                .query("userProfiles")
+                .withIndex("by_userId", (q: any) =>
+                  q.eq("userId", (member as any).userId),
+                )
+                .unique();
+              targetName =
+                memberProfile?.displayName ??
+                memberUser?.name ??
+                memberUser?.email ??
+                "Member";
+            } else if (log.meta?.removedUserId) {
+              const removedUser = await ctx.db.get(log.meta.removedUserId as any);
+              const removedProfile = await ctx.db
+                .query("userProfiles")
+                .withIndex("by_userId", (q: any) =>
+                  q.eq("userId", log.meta.removedUserId),
+                )
+                .unique();
+              targetName =
+                removedProfile?.displayName ??
+                removedUser?.name ??
+                removedUser?.email ??
+                "Removed Member";
+            }
           }
         }
         

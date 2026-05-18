@@ -11,13 +11,25 @@ import { toast } from "sonner";
 const INPUT_CLASS =
   "h-11 rounded-xl border-border/55 bg-secondary/35 placeholder:text-muted-foreground/75";
 
+type LoginSearch = {
+  redirect?: string;
+};
+
 export const Route = createFileRoute("/(auth)/login")({
+  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
   component: LoginPage,
 });
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
   const { signIn } = useAuthActions();
+
+  function afterLoginPath() {
+    return redirect && redirect.startsWith("/") ? redirect : "/";
+  }
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,7 +40,7 @@ function LoginPage() {
     setLoading(true);
     try {
       await signIn("password", { email, password, flow: "signIn" });
-      navigate({ to: "/" });
+      navigate({ href: afterLoginPath() });
     } catch (err: any) {
       toast.error(err.message ?? "Invalid email or password");
     } finally {
@@ -39,7 +51,7 @@ function LoginPage() {
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
     try {
-      await signIn("google", { redirectTo: "/" });
+      await signIn("google", { redirectTo: afterLoginPath() });
     } catch (err: any) {
       toast.error(err.message ?? "Google sign-in failed");
       setGoogleLoading(false);

@@ -76,6 +76,53 @@ export const sendStatusEmail = internalAction({
   },
 });
 
+export const sendWorkspaceInviteEmail = internalAction({
+  args: {
+    email: v.string(),
+    workspaceName: v.string(),
+    role: v.string(),
+    inviterName: v.string(),
+    inviteUrl: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
+      console.warn("RESEND_API_KEY is not set. Invite email not sent.");
+      return;
+    }
+
+    const resend = new Resend(resendApiKey);
+    const roleLabel =
+      args.role.charAt(0).toUpperCase() + args.role.slice(1);
+
+    try {
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to: args.email,
+        subject: `You're invited to ${args.workspaceName} on CPipeLine`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>You've been invited</h2>
+            <p><strong>${args.inviterName}</strong> invited you to join <strong>${args.workspaceName}</strong> as <strong>${roleLabel}</strong>.</p>
+            <p style="margin: 24px 0;">
+              <a href="${args.inviteUrl}" style="display: inline-block; background: #18181b; color: #fff; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Accept invitation
+              </a>
+            </p>
+            <p style="font-size: 13px; color: #71717a;">Or copy this link: ${args.inviteUrl}</p>
+            <p style="font-size: 13px; color: #71717a;">This link expires in 7 days. Sign in with <strong>${args.email}</strong> to accept.</p>
+            <br/>
+            <p>Thanks,<br><strong>CPipeLine Team</strong></p>
+          </div>
+        `,
+      });
+      console.log(`Sent workspace invite email to ${args.email}`);
+    } catch (error) {
+      console.error("Failed to send invite email:", error);
+    }
+  },
+});
+
 export const sendTaskAssignedEmail = internalAction({
   args: {
     email: v.string(),

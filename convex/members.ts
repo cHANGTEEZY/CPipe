@@ -28,11 +28,19 @@ async function requireMember(ctx: any, workspaceId: any, minRole?: string) {
   return { userId, member };
 }
 
-/** List all members of a workspace */
+async function requireOwner(ctx: any, workspaceId: any) {
+  const { member } = await requireMember(ctx, workspaceId);
+  if (member.role !== "owner") {
+    throw new Error("Only the workspace owner can manage member roles");
+  }
+  return member;
+}
+
+/** List all members of a workspace (any member can view) */
 export const list = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, { workspaceId }) => {
-    await requireAuth(ctx);
+    await requireMember(ctx, workspaceId);
     const members = await ctx.db
       .query("members")
       .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
@@ -66,66 +74,6 @@ export const getMyMembership = query({
   },
 });
 
-/** Invite a user by email */
-export const invite = mutation({
-  args: {
-    workspaceId: v.id("workspaces"),
-    email: v.string(),
-    role: v.union(
-      v.literal("admin"),
-      v.literal("editor"),
-      v.literal("viewer")
-    ),
-  },
-  handler: async (ctx, { workspaceId, email, role }) => {
-    const { userId } = await requireMember(ctx, workspaceId, "admin");
-    const token = `${Math.random().toString(36).slice(2)}${Date.now()}`;
-    return await ctx.db.insert("invites", {
-      workspaceId,
-      email,
-      role,
-      token,
-      invitedBy: userId,
-      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-  },
-});
-
-/** Accept an invite by token */
-export const acceptInvite = mutation({
-  args: { token: v.string() },
-  handler: async (ctx, { token }) => {
-    const userId = await requireAuth(ctx);
-    const invite = await ctx.db
-      .query("invites")
-      .withIndex("by_token", (q: any) => q.eq("token", token))
-      .unique();
-    if (!invite) throw new Error("Invalid invite token");
-    if (invite.acceptedAt) throw new Error("Invite already used");
-    if (invite.expiresAt < Date.now()) throw new Error("Invite expired");
-
-    const memberId = await ctx.db.insert("members", {
-      workspaceId: invite.workspaceId,
-      userId,
-      role: invite.role,
-      joinedAt: Date.now(),
-    });
-    await ctx.db.patch(invite._id, { acceptedAt: Date.now() });
-    
-    await ctx.db.insert("activity", {
-      workspaceId: invite.workspaceId,
-      entityType: "member",
-      entityId: memberId,
-      userId,
-      action: "joined",
-      meta: { role: invite.role },
-      createdAt: Date.now(),
-    });
-    
-    return invite.workspaceId;
-  },
-});
-
 /** Update a member's role */
 export const updateRole = mutation({
   args: {
@@ -139,17 +87,34 @@ export const updateRole = mutation({
   handler: async (ctx, { memberId, role }) => {
     const member = await ctx.db.get(memberId);
     if (!member) throw new Error("Member not found");
-    await requireMember(ctx, member.workspaceId, "admin");
+    if (member.role === "owner") {
+      throw new Error("Cannot change the owner's role");
+    }
+    await requireOwner(ctx, member.workspaceId);
     const userId = await requireAuth(ctx);
     await ctx.db.patch(memberId, { role });
-    
+
+    const targetUser = await ctx.db.get(member.userId);
+    const targetProfile = await ctx.db
+      .query("userProfiles")
+      .withIndex("by_userId", (q: any) => q.eq("userId", member.userId))
+      .unique();
+
     await ctx.db.insert("activity", {
       workspaceId: member.workspaceId,
       entityType: "member",
       entityId: memberId,
       userId,
       action: "role_updated",
-      meta: { role },
+      meta: {
+        role,
+        targetUserId: member.userId,
+        targetName:
+          targetProfile?.displayName ??
+          targetUser?.name ??
+          targetUser?.email ??
+          "Member",
+      },
       createdAt: Date.now(),
     });
   },
@@ -161,7 +126,10 @@ export const remove = mutation({
   handler: async (ctx, { memberId }) => {
     const member = await ctx.db.get(memberId);
     if (!member) throw new Error("Member not found");
-    await requireMember(ctx, member.workspaceId, "admin");
+    if (member.role === "owner") {
+      throw new Error("Cannot remove the workspace owner");
+    }
+    await requireOwner(ctx, member.workspaceId);
     const userId = await requireAuth(ctx);
     await ctx.db.delete(memberId);
     

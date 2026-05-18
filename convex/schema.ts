@@ -69,7 +69,8 @@ export default defineSchema({
     acceptedAt: v.optional(v.number()),
   })
     .index("by_workspace", ["workspaceId"])
-    .index("by_token", ["token"]),
+    .index("by_token", ["token"])
+    .index("by_email", ["email"]),
 
   // Projects
   projects: defineTable({

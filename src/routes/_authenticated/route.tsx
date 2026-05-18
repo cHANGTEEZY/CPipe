@@ -15,6 +15,7 @@ import {
 } from "@/components/animate-ui/components/radix/sidebar";
 import ProfileDropDown from "@/components/profile-dropdown";
 import { WorkspaceProjectSync } from "@/components/workspace-project-sync";
+import { WorkspaceInviteBanner } from "@/components/workspace-invite-banner";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -50,7 +51,15 @@ function RouteComponent() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const redirect =
+      pathname + (location.searchStr ?? "");
+    return (
+      <Navigate
+        to="/login"
+        search={{ redirect: redirect || undefined }}
+        replace
+      />
+    );
   }
 
   const isSuperAdminRoute = SUPER_ADMIN_PATHS.some((p) =>
@@ -95,6 +104,7 @@ function RouteComponent() {
           </div>
         </header>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col p-6">
+          {!isSuperAdmin && <WorkspaceInviteBanner />}
           <Outlet />
         </div>
       </SidebarInset>

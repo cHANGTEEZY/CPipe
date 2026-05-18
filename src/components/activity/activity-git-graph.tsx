@@ -29,9 +29,19 @@ export type ActivityLog = {
 };
 
 const ROW_HEIGHT = 52;
-const LANE_WIDTH = 22;
-const GRAPH_PAD_X = 20;
+const MIN_LANE_WIDTH = 56;
+const LANE_WIDTH_PER_CHAR = 7;
+const LABEL_ROW_HEIGHT = 32;
+const GRAPH_PAD_X = 16;
 const NODE_R = 7;
+
+function computeLaneWidth(laneLabels: Map<number, string>) {
+  let width = MIN_LANE_WIDTH;
+  for (const label of laneLabels.values()) {
+    width = Math.max(width, label.length * LANE_WIDTH_PER_CHAR + 20);
+  }
+  return Math.min(width, 112);
+}
 
 const ACTION_STYLE: Record<
   string,
@@ -63,8 +73,8 @@ type GraphNode = {
   mergeFrom?: number;
 };
 
-function laneX(lane: number) {
-  return GRAPH_PAD_X + lane * LANE_WIDTH + LANE_WIDTH / 2;
+function laneX(lane: number, laneWidth: number) {
+  return GRAPH_PAD_X + lane * laneWidth + laneWidth / 2;
 }
 
 function rowY(row: number) {
@@ -79,7 +89,26 @@ function actionStyle(action: string) {
   };
 }
 
-function buildGraph(logs: ActivityLog[]): {
+export type ActivityGraphGroupBy = "project" | "column";
+
+function laneKeyForLog(log: ActivityLog): string {
+  if (log.entityType === "member" || !log.projectId) {
+    return "workspace:members";
+  }
+  return `project:${log.projectId}`;
+}
+
+function laneLabelForLog(log: ActivityLog): string {
+  if (log.entityType === "member" || !log.projectId) {
+    return "Members";
+  }
+  return log.projectName ?? "Project";
+}
+
+function buildGraph(
+  logs: ActivityLog[],
+  groupBy: ActivityGraphGroupBy,
+): {
   nodes: GraphNode[];
   laneCount: number;
   laneLabels: Map<number, string>;
@@ -99,40 +128,40 @@ function buildGraph(logs: ActivityLog[]): {
   }
 
   const nodes: GraphNode[] = sorted.map((log, row) => {
-    if (
+    const useColumnLanes =
+      groupBy === "column" &&
       log.action === "moved" &&
       log.meta?.fromColumnName &&
-      log.meta?.toColumnName
-    ) {
-      const prefix = log.projectId ?? "ws";
+      log.meta?.toColumnName &&
+      log.projectId;
+
+    if (useColumnLanes) {
+      const prefix = log.projectId!;
       const fromLane = ensureLane(
-        `${prefix}:col:${log.meta.fromColumnName}`,
-        log.meta.fromColumnName,
+        `${prefix}:col:${log.meta!.fromColumnName}`,
+        log.meta!.fromColumnName!,
       );
       const toLane = ensureLane(
-        `${prefix}:col:${log.meta.toColumnName}`,
-        log.meta.toColumnName,
+        `${prefix}:col:${log.meta!.toColumnName}`,
+        log.meta!.toColumnName!,
       );
       return { log, row, lane: toLane, mergeFrom: fromLane };
     }
 
-    const label =
-      log.projectName ??
-      (log.entityType === "workspace" ? "Workspace" : log.entityType);
-    const lane = ensureLane(log.projectId ?? `type:${log.entityType}`, label);
+    const lane = ensureLane(laneKeyForLog(log), laneLabelForLog(log));
     return { log, row, lane };
   });
 
   return { nodes, laneCount, laneLabels };
 }
 
-function buildRails(nodes: GraphNode[], laneCount: number) {
+function buildRails(nodes: GraphNode[], laneWidth: number) {
   const segments: { x1: number; y1: number; x2: number; y2: number; lane: number }[] =
     [];
   const laneLastRow = new Map<number, number>();
 
   for (const node of nodes) {
-    const x = laneX(node.lane);
+    const x = laneX(node.lane, laneWidth);
     const y = rowY(node.row);
 
     if (laneLastRow.has(node.lane)) {
@@ -148,7 +177,7 @@ function buildRails(nodes: GraphNode[], laneCount: number) {
     laneLastRow.set(node.lane, node.row);
 
     if (node.mergeFrom !== undefined && node.mergeFrom !== node.lane) {
-      const xFrom = laneX(node.mergeFrom);
+      const xFrom = laneX(node.mergeFrom, laneWidth);
       segments.push({
         x1: xFrom,
         y1: y,
@@ -162,7 +191,7 @@ function buildRails(nodes: GraphNode[], laneCount: number) {
     }
   }
 
-  return { segments, laneCount };
+  return { segments };
 }
 
 function getActionText(log: ActivityLog): string {
@@ -183,7 +212,7 @@ function getActionText(log: ActivityLog): string {
     case "joined":
       return `${userName} joined as ${log.meta?.role ?? "member"}`;
     case "role_updated":
-      return `${userName} changed role for ${target}`;
+      return `${userName} changed ${target}'s role to ${log.meta?.role ?? "member"}`;
     case "removed":
       return `${userName} removed ${target}`;
     default:
@@ -218,26 +247,40 @@ function GraphLegend() {
   );
 }
 
-export function ActivityGitGraph({ logs }: { logs: ActivityLog[] }) {
+export function ActivityGitGraph({
+  logs,
+  groupBy = "project",
+}: {
+  logs: ActivityLog[];
+  /** project = one lane per project (best for All Projects). column = lanes per board column (single project). */
+  groupBy?: ActivityGraphGroupBy;
+}) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const { nodes, laneCount, laneLabels } = useMemo(
-    () => buildGraph(logs),
-    [logs],
-  );
+  const { nodes, laneLabels, laneWidth, graphWidth, svgHeight } =
+    useMemo(() => {
+      const graph = buildGraph(logs, groupBy);
+      const width = computeLaneWidth(graph.laneLabels);
+      const gWidth = Math.max(
+        GRAPH_PAD_X * 2 + Math.max(graph.laneCount, 1) * width,
+        120,
+      );
+      const svgHeight = Math.max(
+        GRAPH_PAD_X * 2 + graph.nodes.length * ROW_HEIGHT,
+        ROW_HEIGHT + GRAPH_PAD_X * 2,
+      );
+      return {
+        ...graph,
+        laneWidth: width,
+        graphWidth: gWidth,
+        graphHeight: LABEL_ROW_HEIGHT + svgHeight,
+        svgHeight,
+      };
+    }, [logs, groupBy]);
 
   const { segments } = useMemo(
-    () => buildRails(nodes, laneCount),
-    [nodes, laneCount],
-  );
-
-  const graphWidth = Math.max(
-    GRAPH_PAD_X * 2 + Math.max(laneCount, 1) * LANE_WIDTH,
-    80,
-  );
-  const graphHeight = Math.max(
-    GRAPH_PAD_X * 2 + nodes.length * ROW_HEIGHT,
-    ROW_HEIGHT + GRAPH_PAD_X * 2,
+    () => buildRails(nodes, laneWidth),
+    [nodes, laneWidth],
   );
 
   if (nodes.length === 0) {
@@ -260,25 +303,37 @@ export function ActivityGitGraph({ logs }: { logs: ActivityLog[] }) {
               className="shrink-0 border-r bg-muted/20 overflow-x-auto"
               style={{ minWidth: graphWidth }}
             >
+              <div
+                className="flex border-b border-border/50 bg-muted/40 box-border"
+                style={{
+                  width: graphWidth,
+                  minHeight: LABEL_ROW_HEIGHT,
+                  paddingLeft: GRAPH_PAD_X,
+                  paddingRight: GRAPH_PAD_X,
+                }}
+              >
+                {Array.from(laneLabels.entries())
+                  .sort(([a], [b]) => a - b)
+                  .map(([lane, label]) => (
+                    <div
+                      key={lane}
+                      className="flex items-center justify-center px-1 py-2 shrink-0"
+                      style={{ width: laneWidth }}
+                      title={label}
+                    >
+                      <span className="text-[10px] font-semibold uppercase text-muted-foreground truncate w-full text-center leading-tight">
+                        {label}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+
               <svg
                 width={graphWidth}
-                height={graphHeight}
+                height={svgHeight}
                 className="block"
                 aria-hidden
               >
-                {/* Lane labels at top */}
-                {Array.from(laneLabels.entries()).map(([lane, label]) => (
-                  <text
-                    key={lane}
-                    x={laneX(lane)}
-                    y={12}
-                    textAnchor="middle"
-                    className="fill-muted-foreground text-[9px] font-semibold uppercase"
-                  >
-                    {label.slice(0, 8)}
-                  </text>
-                ))}
-
                 {/* Vertical + merge rails */}
                 {segments.map((seg, i) => {
                   const isMerge = seg.y1 === seg.y2;
@@ -314,7 +369,7 @@ export function ActivityGitGraph({ logs }: { logs: ActivityLog[] }) {
                 {/* Commit nodes */}
                 {nodes.map((node) => {
                   const style = actionStyle(node.log.action);
-                  const x = laneX(node.lane);
+                  const x = laneX(node.lane, laneWidth);
                   const y = rowY(node.row);
                   const isMerge = style.merge;
                   const isHovered = hoveredId === node.log._id;

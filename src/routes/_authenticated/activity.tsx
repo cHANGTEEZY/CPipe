@@ -29,7 +29,7 @@ function ActivityPage() {
 
   const logs = useQuery(
     api.activity.listByWorkspace,
-    activeWorkspaceId ? { workspaceId: activeWorkspaceId, limit: 100 } : "skip",
+    activeWorkspaceId ? { workspaceId: activeWorkspaceId, limit: 200 } : "skip",
   );
 
   const projects = useQuery(
@@ -69,8 +69,9 @@ function ActivityPage() {
             <h1 className="text-2xl font-bold tracking-tight">Activity Graph</h1>
           </div>
           <p className="text-muted-foreground text-sm mt-1">
-            Git-style visualization of workspace events — lanes by project or column,
-            merges for task moves.
+            {projectId === "all"
+              ? "One lane per project. Filter a project to see column lanes for task moves."
+              : "Lanes follow board columns; blue merges show tasks moving between columns."}
           </p>
         </div>
 
@@ -93,7 +94,10 @@ function ActivityPage() {
       </div>
 
       <ScrollArea className="flex-1 pr-2">
-        <ActivityGitGraph logs={filteredLogs} />
+        <ActivityGitGraph
+          logs={filteredLogs}
+          groupBy={projectId === "all" ? "project" : "column"}
+        />
       </ScrollArea>
     </div>
   );

@@ -15,6 +15,7 @@ import type * as columns from "../columns.js";
 import type * as comments from "../comments.js";
 import type * as emails from "../emails.js";
 import type * as http from "../http.js";
+import type * as invites from "../invites.js";
 import type * as members from "../members.js";
 import type * as projectFields from "../projectFields.js";
 import type * as projects from "../projects.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   emails: typeof emails;
   http: typeof http;
+  invites: typeof invites;
   members: typeof members;
   projectFields: typeof projectFields;
   projects: typeof projects;
