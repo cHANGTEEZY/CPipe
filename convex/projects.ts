@@ -72,8 +72,29 @@ export const get = query({
       .unique();
       
     if (!member) throw new Error("Not a member of this workspace");
-    
-    return project;
+
+    return {
+      ...project,
+      statusOptions: project.statusOptions ?? [
+        "on_track",
+        "at_risk",
+        "off_track",
+      ],
+      priorityOptions: project.priorityOptions ?? [
+        "low",
+        "medium",
+        "high",
+        "urgent",
+      ],
+      labelOptions: project.labelOptions ?? [
+        "bug",
+        "feature",
+        "design",
+        "backend",
+        "frontend",
+        "docs",
+      ],
+    };
   },
 });
 
@@ -92,6 +113,9 @@ export const create = mutation({
       name,
       description,
       pointsEnabled: pointsEnabled ?? false,
+      statusOptions: ["on_track", "at_risk", "off_track"],
+      priorityOptions: ["low", "medium", "high", "urgent"],
+      labelOptions: ["bug", "feature", "design", "backend", "frontend", "docs"],
       createdBy: userId,
       createdAt: Date.now(),
     });

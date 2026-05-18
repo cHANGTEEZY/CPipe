@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { api } from "@convex/_generated/api";
 import { useAppStore } from "@/store/app-store";
+import { useAppStoreHydrated } from "@/hooks/use-app-store-hydrated";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronsUpDown, Plus, Kanban, Check, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -27,11 +28,12 @@ import { Switch } from "@/components/ui/switch";
 import type { Id } from "@convex/_generated/dataModel";
 
 export function ProjectSwitcher() {
+  const hydrated = useAppStoreHydrated();
   const { activeWorkspaceId, activeProjectId, setActiveProject } = useAppStore();
   const projects = useQuery(
     api.projects.list,
-    activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip"
-  ) ?? [];
+    activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
+  );
   const createProject = useMutation(api.projects.create);
   const removeProject = useMutation(api.projects.remove);
 
@@ -42,25 +44,58 @@ export function ProjectSwitcher() {
   const [creating, setCreating] = useState(false);
 
   const navigate = useNavigate();
-  const isHome = useRouterState({ select: (s) => s.location.pathname === "/" });
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isHome = pathname === "/";
+  const boardMatch = pathname.match(/^\/board\/([^/]+)/);
+  const projectIdFromUrl = boardMatch?.[1];
 
-  const active = projects.find((p: any) => p._id === activeProjectId);
+  const active =
+    projects?.find((p) => p._id === activeProjectId) ??
+    (projectIdFromUrl
+      ? projects?.find((p) => p._id === projectIdFromUrl)
+      : undefined);
 
-  // On board routes, keep a valid project selected; on home, let the orbit picker choose
-  if (!isHome) {
-    if (projects.length > 0 && !active && activeWorkspaceId) {
-      const firstId = projects[0]._id as Id<"projects">;
-      setTimeout(() => {
-        setActiveProject(firstId);
-        navigate({ to: "/board/$projectId", params: { projectId: firstId } });
-      }, 0);
-    } else if (projects.length === 0 && activeProjectId) {
-      setTimeout(() => {
+  useEffect(() => {
+    if (!hydrated || isHome || projects === undefined) return;
+
+    if (projects.length === 0) {
+      if (activeProjectId) {
         setActiveProject(null);
-        navigate({ to: "/" });
-      }, 0);
+        if (boardMatch) {
+          navigate({ to: "/", replace: true });
+        }
+      }
+      return;
     }
-  }
+
+    if (activeProjectId && projects.some((p) => p._id === activeProjectId)) {
+      return;
+    }
+
+    if (projectIdFromUrl && projects.some((p) => p._id === projectIdFromUrl)) {
+      setActiveProject(projectIdFromUrl as Id<"projects">);
+      return;
+    }
+
+    const firstId = projects[0]._id as Id<"projects">;
+    setActiveProject(firstId);
+    if (boardMatch) {
+      navigate({
+        to: "/board/$projectId",
+        params: { projectId: firstId },
+        replace: true,
+      });
+    }
+  }, [
+    hydrated,
+    isHome,
+    projects,
+    activeProjectId,
+    projectIdFromUrl,
+    boardMatch,
+    setActiveProject,
+    navigate,
+  ]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -73,12 +108,15 @@ export function ProjectSwitcher() {
         pointsEnabled,
       });
       setActiveProject(id as Id<"projects">);
+      navigate({ to: "/board/$projectId", params: { projectId: id } });
       toast.success(`Project "${newName}" created`);
       setDialogOpen(false);
       setNewName("");
       setPointsEnabled(false);
-    } catch (err: any) {
-      toast.error(err.message ?? "Failed to create project");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to create project";
+      toast.error(message);
     } finally {
       setCreating(false);
     }
@@ -89,8 +127,10 @@ export function ProjectSwitcher() {
       await removeProject({ projectId });
       if (activeProjectId === projectId) setActiveProject(null);
       toast.success(`Project "${name}" deleted`);
-    } catch (err: any) {
-      toast.error(err.message ?? "Failed to delete project");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to delete project";
+      toast.error(message);
     }
   }
 
@@ -117,16 +157,22 @@ export function ProjectSwitcher() {
           <DropdownMenuLabel className="text-xs text-muted-foreground">
             Projects
           </DropdownMenuLabel>
-          {projects.length === 0 && (
+          {projects === undefined && (
+            <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+              Loading…
+            </div>
+          )}
+          {projects?.length === 0 && (
             <div className="px-3 py-4 text-center text-sm text-muted-foreground">
               No projects yet
             </div>
           )}
-          {projects.map((p: any) => (
+          {projects?.map((p) => (
             <DropdownMenuItem
               key={p._id}
               onSelect={() => {
                 setActiveProject(p._id);
+                navigate({ to: "/board/$projectId", params: { projectId: p._id } });
                 setOpen(false);
               }}
               className="gap-2 group/item"
@@ -163,7 +209,6 @@ export function ProjectSwitcher() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Icon-collapsed state */}
       <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
         <Kanban className="size-5 text-muted-foreground" />
       </div>

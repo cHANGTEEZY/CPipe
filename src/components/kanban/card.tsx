@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, MessageSquare, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatTagLabel } from "@/lib/tag-utils";
 import { toast } from "sonner";
 
 const LABEL_COLORS: Record<string, string> = {
@@ -102,7 +103,10 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
         {...listeners}
         className={cn(
           "group relative flex flex-col gap-2 rounded-lg border p-3 shadow-sm select-none w-full transition-all duration-150",
-          card.priority ? PRIORITY_BG_COLORS[card.priority] : "bg-card hover:bg-accent/50 hover:border-primary/40",
+          card.priority
+            ? (PRIORITY_BG_COLORS[card.priority] ??
+              "bg-card hover:bg-accent/50 hover:border-primary/40")
+            : "bg-card hover:bg-accent/50 hover:border-primary/40",
           canWrite ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
           isSortableDragging && "opacity-40 scale-[0.98] shadow-none",
           isDragging && "opacity-90 ring-2 ring-primary shadow-lg cursor-grabbing",
@@ -118,20 +122,34 @@ export function KanbanCard({ card, columnId, isDragging, canWrite = true, canDel
                 key={label}
                 className={cn(
                   "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider",
-                  LABEL_COLORS[label.toLowerCase()] ?? "bg-secondary text-secondary-foreground"
+                  LABEL_COLORS[label.toLowerCase()] ??
+                    "bg-secondary text-secondary-foreground",
                 )}
               >
-                {label}
+                {formatTagLabel(label)}
               </span>
             ))}
           </div>
           
           <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
              {card.status && (
-               <div className={cn("size-2 rounded-full bg-current", STATUS_COLORS[card.status])} title={card.status.replace('_', ' ')} />
+               <div
+                 className={cn(
+                   "size-2 rounded-full bg-current",
+                   STATUS_COLORS[card.status] ?? "text-muted-foreground",
+                 )}
+                 title={formatTagLabel(card.status)}
+               />
              )}
              {card.priority && (
-               <Flag className={cn("size-3", PRIORITY_COLORS[card.priority])} fill="currentColor" />
+               <Flag
+                 className={cn(
+                   "size-3",
+                   PRIORITY_COLORS[card.priority] ?? "text-muted-foreground",
+                 )}
+                 fill="currentColor"
+                 title={formatTagLabel(card.priority)}
+               />
              )}
           </div>
         </div>

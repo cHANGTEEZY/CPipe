@@ -70,10 +70,26 @@ export const create = mutation({
     points: v.optional(v.number()),
     startDate: v.optional(v.number()),
     dueDate: v.optional(v.number()),
-    status: v.optional(v.union(v.literal("on_track"), v.literal("at_risk"), v.literal("off_track"))),
-    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"))),
+    status: v.optional(v.string()),
+    priority: v.optional(v.string()),
+    dependsOnCardId: v.optional(v.id("cards")),
+    dependsOnColumnId: v.optional(v.id("columns")),
   },
-  handler: async (ctx, { columnId, projectId, title, description, assigneeId, labels, points, startDate, dueDate, status, priority }) => {
+  handler: async (ctx, {
+    columnId,
+    projectId,
+    title,
+    description,
+    assigneeId,
+    labels,
+    points,
+    startDate,
+    dueDate,
+    status,
+    priority,
+    dependsOnCardId,
+    dependsOnColumnId,
+  }) => {
     const userId = await requireAuth(ctx);
     const existing = await ctx.db
       .query("cards")
@@ -96,6 +112,8 @@ export const create = mutation({
       dueDate,
       status,
       priority,
+      dependsOnCardId,
+      dependsOnColumnId,
       order: maxOrder + 1,
       createdBy: userId,
       createdAt: Date.now(),
@@ -126,8 +144,10 @@ export const update = mutation({
     points: v.optional(v.number()),
     startDate: v.optional(v.union(v.number(), v.null())),
     dueDate: v.optional(v.union(v.number(), v.null())),
-    status: v.optional(v.union(v.literal("on_track"), v.literal("at_risk"), v.literal("off_track"), v.null())),
-    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"), v.null())),
+    status: v.optional(v.union(v.string(), v.null())),
+    priority: v.optional(v.union(v.string(), v.null())),
+    dependsOnCardId: v.optional(v.union(v.id("cards"), v.null())),
+    dependsOnColumnId: v.optional(v.union(v.id("columns"), v.null())),
   },
   handler: async (ctx, { cardId, ...patch }) => {
     const userId = await requireAuth(ctx);
@@ -171,6 +191,12 @@ export const update = mutation({
     if (patchData.priority === null) {
       patchData.priority = undefined;
     }
+    if (patchData.dependsOnCardId === null) {
+      patchData.dependsOnCardId = undefined;
+    }
+    if (patchData.dependsOnColumnId === null) {
+      patchData.dependsOnColumnId = undefined;
+    }
 
     await ctx.db.patch(cardId, patchData);
     const project = await ctx.db.get(existing.projectId);
@@ -187,6 +213,20 @@ export const update = mutation({
   },
 });
 
+async function assertDependencyAllowsMove(ctx: any, card: any) {
+  if (!card.dependsOnCardId || !card.dependsOnColumnId) return;
+
+  const dependency = await ctx.db.get(card.dependsOnCardId);
+  if (!dependency || dependency.deletedAt) return;
+
+  if (dependency.columnId !== card.dependsOnColumnId) {
+    const requiredColumn = await ctx.db.get(card.dependsOnColumnId);
+    throw new Error(
+      `Cannot move: "${dependency.title}" must be in "${requiredColumn?.name ?? "the required column"}" first.`,
+    );
+  }
+}
+
 /** Move a card to a different column with a new order position */
 export const move = mutation({
   args: {
@@ -198,6 +238,7 @@ export const move = mutation({
     const userId = await requireAuth(ctx);
     const card = await ctx.db.get(cardId);
     if (!card) throw new Error("Card not found");
+    await assertDependencyAllowsMove(ctx, card);
     const fromColumnId = card.columnId;
     await ctx.db.patch(cardId, { columnId: toColumnId, order: newOrder });
     const project = await ctx.db.get(card.projectId);

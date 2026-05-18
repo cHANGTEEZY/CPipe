@@ -9,6 +9,7 @@ import {
   SidebarTrigger,
 } from "@/components/animate-ui/components/radix/sidebar";
 import ProfileDropDown from "@/components/profile-dropdown";
+import { WorkspaceProjectSync } from "@/components/workspace-project-sync";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -47,6 +48,7 @@ function RouteComponent() {
 
   return (
     <SidebarProvider>
+      <WorkspaceProjectSync />
       <AppSidebar />
       <SidebarInset className="min-h-svh min-w-0">
         <header className="flex h-14 shrink-0 items-center gap-4 border-b px-6">

@@ -7,6 +7,10 @@ interface AppState {
   activeProjectId: Id<"projects"> | null;
   setActiveWorkspace: (id: Id<"workspaces"> | null) => void;
   setActiveProject: (id: Id<"projects"> | null) => void;
+  syncSelection: (
+    workspaceId: Id<"workspaces"> | null,
+    projectId: Id<"projects"> | null,
+  ) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -17,9 +21,15 @@ export const useAppStore = create<AppState>()(
       setActiveWorkspace: (id) =>
         set({ activeWorkspaceId: id, activeProjectId: null }),
       setActiveProject: (id) => set({ activeProjectId: id }),
+      syncSelection: (workspaceId, projectId) =>
+        set({ activeWorkspaceId: workspaceId, activeProjectId: projectId }),
     }),
     {
       name: "cpipe-app-store",
-    }
-  )
+      partialize: (state) => ({
+        activeWorkspaceId: state.activeWorkspaceId,
+        activeProjectId: state.activeProjectId,
+      }),
+    },
+  ),
 );

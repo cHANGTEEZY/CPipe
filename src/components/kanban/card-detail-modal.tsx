@@ -19,14 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CustomTagField } from "./custom-tag-field";
+import {
+  LABEL_PRESETS,
+  PRIORITY_PRESETS,
+  STATUS_PRESETS,
+} from "./card-tag-presets";
 import { MessageSquare, Clock, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import type { DateRange } from "react-day-picker";
-
-const ALL_LABELS = ["bug", "feature", "design", "backend", "frontend", "docs"];
+import type { Id } from "@convex/_generated/dataModel";
 
 interface CardDetailModalProps {
   card: any;
@@ -45,13 +49,12 @@ export function CardDetailModal({
 }: CardDetailModalProps) {
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description ?? "");
-  const [points, setPoints] = useState(card.points?.toString() ?? "");
   const [labels, setLabels] = useState<string[]>(card.labels ?? []);
   const [assigneeId, setAssigneeId] = useState<string>(
     card.assigneeId ?? "unassigned",
   );
-  const [status, setStatus] = useState<string>(card.status ?? "on_track");
-  const [priority, setPriority] = useState<string>(card.priority ?? "medium");
+  const [status, setStatus] = useState<string>(card.status ?? "");
+  const [priority, setPriority] = useState<string>(card.priority ?? "");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: card.startDate ? new Date(card.startDate) : undefined,
     to: card.dueDate ? new Date(card.dueDate) : undefined,
@@ -64,11 +67,10 @@ export function CardDetailModal({
     if (open) {
       setTitle(card.title);
       setDescription(card.description ?? "");
-      setPoints(card.points?.toString() ?? "");
       setLabels(card.labels ?? []);
       setAssigneeId(card.assigneeId ?? "unassigned");
-      setStatus(card.status ?? "on_track");
-      setPriority(card.priority ?? "medium");
+      setStatus(card.status ?? "");
+      setPriority(card.priority ?? "");
       setDateRange({
         from: card.startDate ? new Date(card.startDate) : undefined,
         to: card.dueDate ? new Date(card.dueDate) : undefined,
@@ -108,19 +110,6 @@ export function CardDetailModal({
       toast.error("Timeline is required");
       return;
     }
-    if (!status) {
-      toast.error("Status is required");
-      return;
-    }
-    if (!priority) {
-      toast.error("Priority is required");
-      return;
-    }
-    if (labels.length === 0) {
-      toast.error("At least one label is required");
-      return;
-    }
-
     setSaving(true);
     try {
       await updateCard({
@@ -128,12 +117,11 @@ export function CardDetailModal({
         title: title.trim(),
         description: description.trim(),
         labels,
-        points: points ? Number(points) : undefined,
-        assigneeId: assigneeId as any,
+        assigneeId: assigneeId as Id<"users">,
         startDate: dateRange.from.getTime(),
         dueDate: dateRange.to.getTime(),
-        status: status as any,
-        priority: priority as any,
+        status: status || null,
+        priority: priority || null,
       });
       toast.success("Card updated");
     } catch (err: any) {
@@ -157,13 +145,6 @@ export function CardDetailModal({
     }
   }
 
-  function toggleLabel(label: string) {
-    if (!canWrite) return;
-    setLabels((prev) =>
-      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label],
-    );
-  }
-
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent 
@@ -183,53 +164,24 @@ export function CardDetailModal({
           </SheetHeader>
 
           <div className="grid gap-6">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Status */}
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                  Status <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={status}
-                  onValueChange={setStatus}
-                  disabled={!canWrite}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="on_track">On Track</SelectItem>
-                    <SelectItem value="at_risk">At Risk</SelectItem>
-                    <SelectItem value="off_track">Off Track</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* Priority */}
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                  Priority <span className="text-destructive">*</span>
-                </Label>
-                <Select
-                  value={priority}
-                  onValueChange={setPriority}
-                  disabled={!canWrite}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CustomTagField
+                label="Status"
+                presets={STATUS_PRESETS}
+                value={status}
+                onChange={setStatus}
+                disabled={!canWrite}
+              />
+              <CustomTagField
+                label="Priority"
+                presets={PRIORITY_PRESETS}
+                value={priority}
+                onChange={setPriority}
+                disabled={!canWrite}
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Assignee */}
-              <div className="space-y-2">
+            <div className="space-y-2">
                 <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
                   Assignee <span className="text-destructive">*</span>
                 </Label>
@@ -257,23 +209,6 @@ export function CardDetailModal({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              {/* Points */}
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                  Story points
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={points}
-                  onChange={(e) => setPoints(e.target.value)}
-                  disabled={!canWrite}
-                  placeholder="0"
-                  className="w-full"
-                />
-              </div>
             </div>
 
             {/* Timeline */}
@@ -288,31 +223,14 @@ export function CardDetailModal({
               />
             </div>
 
-            {/* Labels */}
-            <div className="space-y-3">
-              <Label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                Labels <span className="text-destructive">*</span>
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {ALL_LABELS.map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => toggleLabel(label)}
-                    disabled={!canWrite}
-                    className={cn(
-                      "rounded-full px-3 py-1 text-xs font-medium capitalize border transition-all",
-                      labels.includes(label)
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-transparent bg-muted text-muted-foreground",
-                      canWrite && "hover:border-primary/30",
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <CustomTagField
+              mode="multi"
+              label="Labels"
+              presets={LABEL_PRESETS}
+              values={labels}
+              onChange={setLabels}
+              disabled={!canWrite}
+            />
 
             {/* Description */}
             <div className="space-y-3">

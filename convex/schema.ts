@@ -77,6 +77,9 @@ export default defineSchema({
     name: v.string(),
     description: v.optional(v.string()),
     pointsEnabled: v.boolean(),
+    statusOptions: v.optional(v.array(v.string())),
+    priorityOptions: v.optional(v.array(v.string())),
+    labelOptions: v.optional(v.array(v.string())),
     createdBy: v.id("users"),
     deletedAt: v.optional(v.number()),
     createdAt: v.number(),
@@ -106,8 +109,10 @@ export default defineSchema({
     points: v.optional(v.number()),
     startDate: v.optional(v.number()),
     dueDate: v.optional(v.number()),
-    status: v.optional(v.union(v.literal("on_track"), v.literal("at_risk"), v.literal("off_track"))),
-    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"))),
+    status: v.optional(v.string()),
+    priority: v.optional(v.string()),
+    dependsOnCardId: v.optional(v.id("cards")),
+    dependsOnColumnId: v.optional(v.id("columns")),
     order: v.number(),
     deletedAt: v.optional(v.number()),
     createdBy: v.id("users"),
@@ -115,6 +120,7 @@ export default defineSchema({
   })
     .index("by_column", ["columnId"])
     .index("by_project", ["projectId"])
+    .index("by_depends_on", ["dependsOnCardId"])
     .index("by_column_order", ["columnId", "order"])
     .searchIndex("search_title", {
       searchField: "title",

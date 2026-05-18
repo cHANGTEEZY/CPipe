@@ -11,12 +11,14 @@ import { toast } from "sonner";
 import type { Id } from "@convex/_generated/dataModel";
 import { OrbitPicker } from "@/components/home/orbit-picker";
 import { Highlighter } from "@/components/ui/highlighter";
+import { useAppStoreHydrated } from "@/hooks/use-app-store-hydrated";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: HomePage,
 });
 
 function HomePage() {
+  const hydrated = useAppStoreHydrated();
   const {
     activeWorkspaceId,
     activeProjectId,
@@ -37,20 +39,11 @@ function HomePage() {
   const [projName, setProjName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Home is a picker — don't carry an active project into the board redirect loop
+  // Home is a picker — clear project only after hydration (never during pre-hydrate null state)
   useEffect(() => {
+    if (!hydrated) return;
     setActiveProject(null);
-  }, [setActiveProject]);
-
-  useEffect(() => {
-    if (activeProjectId) {
-      navigate({
-        to: "/board/$projectId",
-        params: { projectId: activeProjectId },
-        replace: true,
-      });
-    }
-  }, [activeProjectId, navigate]);
+  }, [hydrated, setActiveProject]);
 
   if (
     workspaces === undefined ||
