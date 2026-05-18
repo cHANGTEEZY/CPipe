@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { KanbanCard } from "./card";
-import { AddCardForm } from "./add-card-form";
+import { AddCardSheet } from "./add-card-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -53,7 +53,7 @@ export function KanbanColumn({
 
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(column.name);
-  const [showAddCard, setShowAddCard] = useState(false);
+  const [addCardOpen, setAddCardOpen] = useState(false);
 
   const {
     attributes,
@@ -216,23 +216,22 @@ export function KanbanColumn({
       {/* Add card */}
       {canWrite && (
         <div className="p-3 pt-2">
-          {showAddCard ? (
-            <AddCardForm
-              columnId={column._id}
-              projectId={projectId}
-              onClose={() => setShowAddCard(false)}
-            />
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAddCard(true)}
-              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <Plus className="size-4" />
-              Add card
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setAddCardOpen(true)}
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <Plus className="size-4" />
+            Add card
+          </Button>
+          <AddCardSheet
+            open={addCardOpen}
+            onOpenChange={setAddCardOpen}
+            columnId={column._id}
+            projectId={projectId}
+            columnName={column.name}
+          />
         </div>
       )}
 
