@@ -2,6 +2,8 @@ import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { Resend } from "resend";
 
+const FROM_EMAIL = "admin@sushankgurung.com";
+
 export const sendStatusEmail = internalAction({
   args: {
     email: v.string(),
@@ -62,7 +64,7 @@ export const sendStatusEmail = internalAction({
 
     try {
       await resend.emails.send({
-        from: "CPipe Tracker <onboarding@resend.dev>", 
+        from: FROM_EMAIL,
         to: args.email,
         subject,
         html,
@@ -89,7 +91,7 @@ export const sendTaskAssignedEmail = internalAction({
 
     try {
       await resend.emails.send({
-        from: "CPipe Tracker <onboarding@resend.dev>",
+        from: FROM_EMAIL,
         to: args.email,
         subject: `You've been assigned to a task: ${args.taskTitle}`,
         html: `
