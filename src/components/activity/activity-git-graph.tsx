@@ -34,6 +34,8 @@ const LANE_WIDTH_PER_CHAR = 7;
 const LABEL_ROW_HEIGHT = 32;
 const GRAPH_PAD_X = 16;
 const NODE_R = 7;
+/** Matches action-type column in the activity log header */
+const ACTIVITY_TYPE_COL = "w-14 shrink-0";
 
 function computeLaneWidth(laneLabels: Map<number, string>) {
   let width = MIN_LANE_WIDTH;
@@ -414,8 +416,25 @@ export function ActivityGitGraph({
               </svg>
             </div>
 
-            {/* Commit messages (like git log) */}
-            <div className="flex-1 min-w-0">
+            {/* Activity log — header aligns with graph lane row */}
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div
+                className="flex items-center gap-2 border-b border-border/50 bg-muted/40 px-4 box-border"
+                style={{
+                  height: LABEL_ROW_HEIGHT,
+                  minHeight: LABEL_ROW_HEIGHT,
+                }}
+              >
+                <span
+                  className={`${ACTIVITY_TYPE_COL} text-[10px] font-semibold uppercase tracking-wide text-muted-foreground`}
+                >
+                  Type
+                </span>
+                <span className="min-w-0 flex-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Activity
+                </span>
+              </div>
+
               {nodes.map((node) => {
                 const style = actionStyle(node.log.action);
                 const isHovered = hoveredId === node.log._id;
@@ -425,26 +444,34 @@ export function ActivityGitGraph({
                     <TooltipTrigger asChild>
                       <div
                         className={cn(
-                          "flex items-start gap-3 px-4 border-b border-border/50 transition-colors",
+                          "flex items-center gap-2 px-4 border-b border-border/50 transition-colors",
                           isHovered && "bg-accent/50",
                         )}
                         style={{ height: ROW_HEIGHT }}
                         onMouseEnter={() => setHoveredId(node.log._id)}
                         onMouseLeave={() => setHoveredId(null)}
                       >
-                        <div className="flex flex-col justify-center min-w-0 flex-1 py-1">
-                          <p className="text-sm leading-snug truncate">
-                            <span
-                              className="font-mono text-[11px] font-semibold mr-2"
-                              style={{ color: style.fill }}
-                            >
-                              {style.label}
-                            </span>
-                            <span className="text-muted-foreground">
+                        <span
+                          className={`${ACTIVITY_TYPE_COL} font-mono text-[11px] font-semibold leading-none`}
+                          style={{ color: style.fill }}
+                        >
+                          {style.label}
+                        </span>
+                        <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                          <p className="flex items-center gap-2 min-w-0 text-sm leading-snug">
+                            <span className="min-w-0 flex-1 truncate text-muted-foreground">
                               {getActionText(node.log)}
                             </span>
+                            {node.log.action === "moved" && (
+                              <Badge
+                                variant="outline"
+                                className="h-5 shrink-0 px-1.5 text-[9px] uppercase border-blue-500/30 text-blue-600 dark:text-blue-400"
+                              >
+                                merge
+                              </Badge>
+                            )}
                           </p>
-                          <p className="text-[10px] text-muted-foreground/70 mt-0.5 font-mono">
+                          <p className="truncate text-[10px] text-muted-foreground/70 font-mono">
                             {formatDistanceToNow(node.log.createdAt, {
                               addSuffix: true,
                             })}
@@ -455,14 +482,6 @@ export function ActivityGitGraph({
                             )}
                           </p>
                         </div>
-                        {node.log.action === "moved" && (
-                          <Badge
-                            variant="outline"
-                            className="shrink-0 text-[9px] uppercase border-blue-500/30 text-blue-600 dark:text-blue-400"
-                          >
-                            merge
-                          </Badge>
-                        )}
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="left" className="max-w-xs text-xs">
