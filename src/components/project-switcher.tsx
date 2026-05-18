@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "convex/react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { api } from "@convex/_generated/api";
 import { useAppStore } from "@/store/app-store";
 import { Button } from "@/components/ui/button";
@@ -42,22 +42,24 @@ export function ProjectSwitcher() {
   const [creating, setCreating] = useState(false);
 
   const navigate = useNavigate();
+  const isHome = useRouterState({ select: (s) => s.location.pathname === "/" });
 
   const active = projects.find((p: any) => p._id === activeProjectId);
 
-  // Auto-select first project if current active is not in the list (e.g. workspace changed)
-  if (projects.length > 0 && !active && activeWorkspaceId) {
-    const firstId = projects[0]._id as Id<"projects">;
-    // Delay slightly to prevent render phase state updates warnings
-    setTimeout(() => {
-      setActiveProject(firstId);
-      navigate({ to: "/board/$projectId", params: { projectId: firstId } });
-    }, 0);
-  } else if (projects.length === 0 && activeProjectId) {
-    setTimeout(() => {
-      setActiveProject(null);
-      navigate({ to: "/" });
-    }, 0);
+  // On board routes, keep a valid project selected; on home, let the orbit picker choose
+  if (!isHome) {
+    if (projects.length > 0 && !active && activeWorkspaceId) {
+      const firstId = projects[0]._id as Id<"projects">;
+      setTimeout(() => {
+        setActiveProject(firstId);
+        navigate({ to: "/board/$projectId", params: { projectId: firstId } });
+      }, 0);
+    } else if (projects.length === 0 && activeProjectId) {
+      setTimeout(() => {
+        setActiveProject(null);
+        navigate({ to: "/" });
+      }, 0);
+    }
   }
 
   async function handleCreate(e: React.FormEvent) {

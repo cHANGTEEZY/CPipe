@@ -107,6 +107,32 @@ export const remove = mutation({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, { workspaceId }) => {
     await requireMember(ctx, workspaceId, "owner");
+
+    const members = await ctx.db
+      .query("members")
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
+      .collect();
+    for (const member of members) {
+      await ctx.db.delete(member._id);
+    }
+
+    const invites = await ctx.db
+      .query("invites")
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
+      .collect();
+    for (const invite of invites) {
+      await ctx.db.delete(invite._id);
+    }
+
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
+      .collect();
+    const now = Date.now();
+    for (const project of projects) {
+      await ctx.db.patch(project._id, { deletedAt: now });
+    }
+
     await ctx.db.delete(workspaceId);
   },
 });

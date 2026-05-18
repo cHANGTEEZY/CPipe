@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronsUpDown, Plus, Building2, Check } from "lucide-react";
+import { ChevronsUpDown, Plus, Building2, Check, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -21,6 +21,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Id } from "@convex/_generated/dataModel";
@@ -28,19 +38,19 @@ import type { Id } from "@convex/_generated/dataModel";
 export function OrgSwitcher() {
   const workspaces = useQuery(api.workspaces.list) ?? [];
   const createWorkspace = useMutation(api.workspaces.create);
+  const removeWorkspace = useMutation(api.workspaces.remove);
   const { activeWorkspaceId, setActiveWorkspace, setActiveProject } = useAppStore();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: Id<"workspaces">; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const active = (workspaces.find((w: any) => w._id === activeWorkspaceId) ?? (workspaces.length > 0 ? workspaces[0] : null)) as any;
+  const me = useQuery(api.users.getMe);
 
-  // Auto-select first workspace if none active
-  if (!activeWorkspaceId && workspaces.length > 0 && workspaces[0]) {
-    setActiveWorkspace(workspaces[0]._id as Id<"workspaces">);
-  }
+  const active = workspaces.find((w: any) => w._id === activeWorkspaceId) as any;
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -56,6 +66,26 @@ export function OrgSwitcher() {
       toast.error(err.message ?? "Failed to create workspace");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await removeWorkspace({ workspaceId: deleteTarget.id });
+      if (activeWorkspaceId === deleteTarget.id) {
+        setActiveWorkspace(null);
+        setActiveProject(null);
+        navigate({ to: "/" });
+      }
+      toast.success(`Workspace "${deleteTarget.name}" deleted`);
+      setDeleteTarget(null);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to delete workspace";
+      toast.error(message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -91,7 +121,7 @@ export function OrgSwitcher() {
                 }
                 setOpen(false);
               }}
-              className="gap-2"
+              className="gap-2 group/item"
             >
               <div className="flex size-6 shrink-0 items-center justify-center rounded bg-primary/10 text-primary text-xs font-bold">
                 {ws.name[0].toUpperCase()}
@@ -99,6 +129,20 @@ export function OrgSwitcher() {
               <span className="flex-1 truncate">{ws.name}</span>
               {ws._id === activeWorkspaceId && (
                 <Check className="size-4 text-primary" />
+              )}
+              {me?._id && ws.ownerId === me._id && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 opacity-0 group-hover/item:opacity-100 hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                    setDeleteTarget({ id: ws._id, name: ws.name });
+                  }}
+                >
+                  <Trash2 className="size-3" />
+                </Button>
               )}
             </DropdownMenuItem>
           ))}
@@ -150,6 +194,31 @@ export function OrgSwitcher() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete workspace?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete &quot;{deleteTarget?.name}&quot; and soft-delete all
+              its projects. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDelete();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete workspace"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

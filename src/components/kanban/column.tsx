@@ -17,6 +17,7 @@ import {
 import { MoreHorizontal, GripVertical, Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { NumberTicker } from "@/components/ui/number-ticker";
 
 interface ColumnProps {
   column: any;
@@ -141,9 +142,10 @@ export function KanbanColumn({ column, projectId, pointsEnabled, canWrite, canDe
           </span>
         )}
 
-        <span className="text-xs font-medium text-muted-foreground tabular-nums">
-          {cards.length}
-        </span>
+        <NumberTicker
+          value={cards.length}
+          className="text-xs font-medium text-muted-foreground"
+        />
 
         {canWrite && (
           <div onClick={(e) => e.stopPropagation()}>

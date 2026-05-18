@@ -2,42 +2,60 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useAppStore } from "@/store/app-store";
-import { Loader2, LayoutDashboard } from "lucide-react";
+import { Loader2, Building2, Kanban, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { Id } from "@convex/_generated/dataModel";
+import { OrbitPicker } from "@/components/home/orbit-picker";
+import { Highlighter } from "@/components/ui/highlighter";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: HomePage,
 });
 
 function HomePage() {
-  const { activeWorkspaceId, activeProjectId, setActiveWorkspace, setActiveProject } = useAppStore();
+  const {
+    activeWorkspaceId,
+    activeProjectId,
+    setActiveWorkspace,
+    setActiveProject,
+  } = useAppStore();
   const workspaces = useQuery(api.workspaces.list);
   const projects = useQuery(
     api.projects.list,
-    activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip"
+    activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
   );
-  
+
   const createWorkspace = useMutation(api.workspaces.create);
   const createProject = useMutation(api.projects.create);
   const navigate = useNavigate();
 
   const [wsName, setWsName] = useState("");
-  const [loading, setLoading] = useState(false);
   const [projName, setProjName] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Auto-navigate to project if active
+  // Home is a picker — don't carry an active project into the board redirect loop
+  useEffect(() => {
+    setActiveProject(null);
+  }, [setActiveProject]);
+
   useEffect(() => {
     if (activeProjectId) {
-      navigate({ to: "/board/$projectId", params: { projectId: activeProjectId }, replace: true });
+      navigate({
+        to: "/board/$projectId",
+        params: { projectId: activeProjectId },
+        replace: true,
+      });
     }
   }, [activeProjectId, navigate]);
 
-  if (workspaces === undefined || (activeWorkspaceId && projects === undefined)) {
+  if (
+    workspaces === undefined ||
+    (activeWorkspaceId && projects === undefined)
+  ) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -53,6 +71,7 @@ function HomePage() {
       const id = await createWorkspace({ name: wsName.trim() });
       setActiveWorkspace(id as Id<"workspaces">);
       toast.success("Workspace created");
+      setWsName("");
     } catch {
       toast.error("Failed to create workspace");
     } finally {
@@ -65,9 +84,14 @@ function HomePage() {
     if (!projName.trim() || !activeWorkspaceId) return;
     setLoading(true);
     try {
-      const id = await createProject({ workspaceId: activeWorkspaceId, name: projName.trim(), pointsEnabled: false });
+      const id = await createProject({
+        workspaceId: activeWorkspaceId,
+        name: projName.trim(),
+        pointsEnabled: false,
+      });
       setActiveProject(id as Id<"projects">);
       toast.success("Project created");
+      setProjName("");
     } catch {
       toast.error("Failed to create project");
     } finally {
@@ -75,66 +99,159 @@ function HomePage() {
     }
   }
 
+  const activeWorkspace = workspaces.find((w) => w._id === activeWorkspaceId);
+
+  // No workspaces — highlighted empty state
   if (workspaces.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="w-full max-w-sm space-y-4 text-center">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 mx-auto">
-            <LayoutDashboard className="size-8 text-primary" />
-          </div>
+      <EmptyStateShell
+        icon={<Building2 className="size-10 text-primary" />}
+        title={
+          <>
+            Welcome to{" "}
+            <Highlighter color="hsl(var(--primary) / 0.35)">CPipeLine</Highlighter>
+          </>
+        }
+        description="Create your first workspace to start organizing projects and boards."
+      >
+        <form onSubmit={handleCreateWorkspace} className="w-full max-w-sm space-y-4 text-left">
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Welcome to CPipeLine</h2>
-            <p className="text-sm text-muted-foreground">Create your first workspace to get started.</p>
+            <Label>Workspace name</Label>
+            <Input
+              required
+              placeholder="e.g. Acme Corp"
+              value={wsName}
+              onChange={(e) => setWsName(e.target.value)}
+            />
           </div>
-          <form onSubmit={handleCreateWorkspace} className="space-y-4 pt-4 text-left">
-            <div className="space-y-2">
-              <Label>Workspace Name</Label>
-              <Input required placeholder="e.g. Acme Corp" value={wsName} onChange={(e) => setWsName(e.target.value)} />
-            </div>
-            <Button className="w-full" type="submit" disabled={loading || !wsName.trim()}>
-              {loading ? "Creating..." : "Create Workspace"}
-            </Button>
-          </form>
-        </div>
-      </div>
+          <Button className="w-full gap-2" type="submit" disabled={loading || !wsName.trim()}>
+            <Plus className="size-4" />
+            {loading ? "Creating…" : "Create workspace"}
+          </Button>
+        </form>
+      </EmptyStateShell>
     );
   }
 
-  if (activeWorkspaceId && projects && projects.length === 0) {
+  // Pick a workspace
+  if (!activeWorkspaceId) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="w-full max-w-sm space-y-4 text-center">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 mx-auto">
-            <LayoutDashboard className="size-8 text-primary" />
-          </div>
+      <OrbitPicker
+        items={workspaces.map((w) => ({ id: w._id, name: w.name }))}
+        onSelect={(id) => setActiveWorkspace(id as Id<"workspaces">)}
+        title={
+          <>
+            Choose a{" "}
+            <Highlighter color="hsl(var(--primary) / 0.35)">workspace</Highlighter>
+          </>
+        }
+        subtitle="Orbit through your teams — click a circle or label below."
+      />
+    );
+  }
+
+  // Workspace selected but no projects
+  if (projects && projects.length === 0) {
+    return (
+      <EmptyStateShell
+        icon={<Kanban className="size-10 text-primary" />}
+        title={
+          <>
+            <Highlighter color="hsl(var(--primary) / 0.35)">
+              {activeWorkspace?.name ?? "Workspace"}
+            </Highlighter>{" "}
+            is empty
+          </>
+        }
+        description="Add your first project to open a kanban board."
+        footer={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            onClick={() => setActiveWorkspace(null)}
+          >
+            ← Pick another workspace
+          </Button>
+        }
+      >
+        <form onSubmit={handleCreateProject} className="w-full max-w-sm space-y-4 text-left">
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold">Workspace is empty</h2>
-            <p className="text-sm text-muted-foreground">Create your first project to start tracking tasks.</p>
+            <Label>Project name</Label>
+            <Input
+              required
+              placeholder="e.g. Website Redesign"
+              value={projName}
+              onChange={(e) => setProjName(e.target.value)}
+            />
           </div>
-          <form onSubmit={handleCreateProject} className="space-y-4 pt-4 text-left">
-            <div className="space-y-2">
-              <Label>Project Name</Label>
-              <Input required placeholder="e.g. Website Redesign" value={projName} onChange={(e) => setProjName(e.target.value)} />
-            </div>
-            <Button className="w-full" type="submit" disabled={loading || !projName.trim()}>
-              {loading ? "Creating..." : "Create Project"}
-            </Button>
-          </form>
+          <Button className="w-full gap-2" type="submit" disabled={loading || !projName.trim()}>
+            <Plus className="size-4" />
+            {loading ? "Creating…" : "Create project"}
+          </Button>
+        </form>
+      </EmptyStateShell>
+    );
+  }
+
+  // Pick a project
+  if (projects && projects.length > 0) {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            onClick={() => setActiveWorkspace(null)}
+          >
+            ← Change workspace
+          </Button>
         </div>
+        <OrbitPicker
+          items={projects.map((p) => ({ id: p._id, name: p.name }))}
+          onSelect={(id) => setActiveProject(id as Id<"projects">)}
+          title={
+            <>
+              Open a{" "}
+              <Highlighter color="hsl(var(--primary) / 0.35)">project</Highlighter>
+            </>
+          }
+          subtitle={`Projects in ${activeWorkspace?.name ?? "your workspace"}`}
+          className="flex-1"
+        />
       </div>
     );
   }
 
+  return null;
+}
+
+function EmptyStateShell({
+  icon,
+  title,
+  description,
+  children,
+  footer,
+}: {
+  icon: ReactNode;
+  title: ReactNode;
+  description: string;
+  children?: ReactNode;
+  footer?: ReactNode;
+}) {
   return (
-    <div className="flex h-full items-center justify-center">
-      <div className="text-center space-y-4 max-w-sm">
-        <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 mx-auto">
-          <LayoutDashboard className="size-8 text-primary" />
+    <div className="flex h-full min-h-[60vh] items-center justify-center p-6">
+      <div className="w-full max-w-md space-y-6 text-center">
+        <div className="flex size-20 items-center justify-center rounded-3xl bg-primary/10 mx-auto ring-1 ring-primary/20">
+          {icon}
         </div>
-        <h2 className="text-xl font-semibold">Select the Board</h2>
-        <p className="text-sm text-muted-foreground">
-          Use the sidebar to select a workspace and project.
-        </p>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+        </div>
+        {children}
+        {footer}
       </div>
     </div>
   );
