@@ -1,11 +1,5 @@
 import type { ReactNode } from "react"
 import { OrbitingCircles } from "@/components/ui/orbiting-circles"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 export interface OrbitPickerItem {
@@ -24,32 +18,37 @@ interface OrbitPickerProps {
 function OrbitNode({
   item,
   onSelect,
+  planetSize,
 }: {
   item: OrbitPickerItem
   onSelect: (id: string) => void
+  planetSize: number
 }) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={() => onSelect(item.id)}
-          className={cn(
-            "flex size-full cursor-pointer items-center justify-center rounded-full",
-            "border-2 border-border bg-card shadow-md transition-all duration-200",
-            "hover:scale-110 hover:border-primary hover:shadow-lg hover:ring-2 hover:ring-primary/30",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          )}
-        >
-          <span className="text-sm font-bold text-foreground">
-            {item.name[0]?.toUpperCase() ?? "?"}
-          </span>
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="top" sideOffset={10} className="font-medium">
+    <button
+      type="button"
+      onClick={() => onSelect(item.id)}
+      className={cn(
+        "flex h-full w-full cursor-pointer flex-col items-center justify-start gap-1.5",
+        "rounded-lg bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      )}
+    >
+      <span
+        className={cn(
+          "flex shrink-0 items-center justify-center rounded-full",
+          "border-2 border-border bg-card shadow-md transition-all duration-200",
+          "hover:scale-110 hover:border-primary hover:shadow-lg hover:ring-2 hover:ring-primary/30"
+        )}
+        style={{ width: planetSize, height: planetSize }}
+      >
+        <span className="text-sm font-bold text-foreground">
+          {item.name[0]?.toUpperCase() ?? "?"}
+        </span>
+      </span>
+      <span className="max-w-[5.5rem] truncate text-center text-[11px] font-medium leading-tight text-foreground">
         {item.name}
-      </TooltipContent>
-    </Tooltip>
+      </span>
+    </button>
   )
 }
 
@@ -61,8 +60,10 @@ export function OrbitPicker({
   className,
 }: OrbitPickerProps) {
   const count = items.length
-  const iconSize = count <= 4 ? 56 : count <= 8 ? 48 : 40
-  const radius = count <= 4 ? 130 : count <= 8 ? 150 : 170
+  const planetSize = count <= 4 ? 64 : count <= 8 ? 56 : 48
+  const labelHeight = 20
+  const iconSize = planetSize + labelHeight + 8
+  const radius = count <= 4 ? 165 : count <= 8 ? 185 : 205
   const innerRadius = Math.round(radius * 0.55)
   const orbitSize = radius * 2 + iconSize
 
@@ -71,14 +72,13 @@ export function OrbitPicker({
   const outer = useDualOrbit ? items.slice(Math.ceil(count / 2)) : items
 
   return (
-    <TooltipProvider delayDuration={200} skipDelayDuration={0}>
     <div
       className={cn(
-        "flex w-full flex-col items-center justify-center gap-6 py-8",
+        "flex w-full flex-col items-center justify-center gap-8",
         className
       )}
     >
-      <div className="text-center space-y-2 px-4 max-w-md">
+      <div className="space-y-2 px-4 max-w-md text-center">
         <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
         {subtitle && (
           <p className="text-sm text-muted-foreground">{subtitle}</p>
@@ -86,10 +86,10 @@ export function OrbitPicker({
       </div>
 
       <div
-        className="relative flex items-center justify-center"
+        className="relative flex items-center justify-center overflow-visible"
         style={{ width: orbitSize, height: orbitSize }}
       >
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pointer-events-none z-10">
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center px-4 text-center">
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
             Click to select
           </p>
@@ -105,7 +105,12 @@ export function OrbitPicker({
               pathClassName="dark:stroke-white/20 stroke-black/20"
             >
               {outer.map((item) => (
-                <OrbitNode key={item.id} item={item} onSelect={onSelect} />
+                <OrbitNode
+                  key={item.id}
+                  item={item}
+                  onSelect={onSelect}
+                  planetSize={planetSize}
+                />
               ))}
             </OrbitingCircles>
             <OrbitingCircles
@@ -117,7 +122,12 @@ export function OrbitPicker({
               pathClassName="dark:stroke-primary/40 stroke-primary/30 [stroke-dasharray:4_6]"
             >
               {inner.map((item) => (
-                <OrbitNode key={item.id} item={item} onSelect={onSelect} />
+                <OrbitNode
+                  key={item.id}
+                  item={item}
+                  onSelect={onSelect}
+                  planetSize={planetSize - 8}
+                />
               ))}
             </OrbitingCircles>
           </>
@@ -129,26 +139,16 @@ export function OrbitPicker({
             pathClassName="dark:stroke-white/20 stroke-black/20"
           >
             {items.map((item) => (
-              <OrbitNode key={item.id} item={item} onSelect={onSelect} />
+              <OrbitNode
+                key={item.id}
+                item={item}
+                onSelect={onSelect}
+                planetSize={planetSize}
+              />
             ))}
           </OrbitingCircles>
         )}
       </div>
-
-      <ul className="flex flex-wrap justify-center gap-2 max-w-lg px-4">
-        {items.map((item) => (
-          <li key={item.id}>
-            <button
-              type="button"
-              onClick={() => onSelect(item.id)}
-              className="rounded-full border bg-muted/50 px-3 py-1 text-xs font-medium transition-colors hover:bg-primary/10 hover:border-primary/40"
-            >
-              {item.name}
-            </button>
-          </li>
-        ))}
-      </ul>
     </div>
-    </TooltipProvider>
   )
 }

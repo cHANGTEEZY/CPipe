@@ -19,12 +19,8 @@ export const Route = createFileRoute("/_authenticated/")({
 
 function HomePage() {
   const hydrated = useAppStoreHydrated();
-  const {
-    activeWorkspaceId,
-    activeProjectId,
-    setActiveWorkspace,
-    setActiveProject,
-  } = useAppStore();
+  const { activeWorkspaceId, setActiveWorkspace, setActiveProject } =
+    useAppStore();
   const workspaces = useQuery(api.workspaces.list);
   const projects = useQuery(
     api.projects.list,
@@ -72,6 +68,11 @@ function HomePage() {
     }
   }
 
+  function openProject(projectId: Id<"projects">) {
+    setActiveProject(projectId);
+    navigate({ to: "/board/$projectId", params: { projectId } });
+  }
+
   async function handleCreateProject(e: React.FormEvent) {
     e.preventDefault();
     if (!projName.trim() || !activeWorkspaceId) return;
@@ -82,7 +83,7 @@ function HomePage() {
         name: projName.trim(),
         pointsEnabled: false,
       });
-      setActiveProject(id as Id<"projects">);
+      openProject(id as Id<"projects">);
       toast.success("Project created");
       setProjName("");
     } catch {
@@ -129,17 +130,19 @@ function HomePage() {
   // Pick a workspace
   if (!activeWorkspaceId) {
     return (
-      <OrbitPicker
-        items={workspaces.map((w) => ({ id: w._id, name: w.name }))}
-        onSelect={(id) => setActiveWorkspace(id as Id<"workspaces">)}
-        title={
-          <>
-            Choose a{" "}
-            <Highlighter color="hsl(var(--primary) / 0.35)">workspace</Highlighter>
-          </>
-        }
-        subtitle="Orbit through your teams — click a circle or label below."
-      />
+      <PickerShell>
+        <OrbitPicker
+          items={workspaces.map((w) => ({ id: w._id, name: w.name }))}
+          onSelect={(id) => setActiveWorkspace(id as Id<"workspaces">)}
+          title={
+            <>
+              Choose a{" "}
+              <Highlighter color="hsl(var(--primary) / 0.35)">workspace</Highlighter>
+            </>
+          }
+          subtitle="Orbit through your teams — click a planet to continue."
+        />
+      </PickerShell>
     );
   }
 
@@ -190,20 +193,18 @@ function HomePage() {
   // Pick a project
   if (projects && projects.length > 0) {
     return (
-      <div className="flex h-full flex-col">
-        <div className="flex justify-center pt-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            onClick={() => setActiveWorkspace(null)}
-          >
-            ← Change workspace
-          </Button>
-        </div>
+      <PickerShell>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mb-2 text-muted-foreground"
+          onClick={() => setActiveWorkspace(null)}
+        >
+          ← Change workspace
+        </Button>
         <OrbitPicker
           items={projects.map((p) => ({ id: p._id, name: p.name }))}
-          onSelect={(id) => setActiveProject(id as Id<"projects">)}
+          onSelect={(id) => openProject(id as Id<"projects">)}
           title={
             <>
               Open a{" "}
@@ -211,13 +212,20 @@ function HomePage() {
             </>
           }
           subtitle={`Projects in ${activeWorkspace?.name ?? "your workspace"}`}
-          className="flex-1"
         />
-      </div>
+      </PickerShell>
     );
   }
 
   return null;
+}
+
+function PickerShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-[60vh] flex-1 flex-col items-center justify-center">
+      {children}
+    </div>
+  );
 }
 
 function EmptyStateShell({
