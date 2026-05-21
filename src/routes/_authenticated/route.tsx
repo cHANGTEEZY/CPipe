@@ -105,7 +105,9 @@ function RouteComponent() {
         </header>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col p-6">
           {!isSuperAdmin && <WorkspaceInviteBanner />}
-          <Outlet />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <Outlet />
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

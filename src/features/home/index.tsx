@@ -2,14 +2,16 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useAppStore } from "@/store/app-store";
-import { Loader2, Building2, Kanban, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { Id } from "@convex/_generated/dataModel";
+import { EmptyTestimonial } from "@/components/home/empty-testimonial";
 import { OrbitPicker } from "@/components/home/orbit-picker";
+import { StarsShell } from "@/components/home/stars-shell";
 import { Highlighter } from "@/components/ui/highlighter";
 import { useAppStoreHydrated } from "@/hooks/use-app-store-hydrated";
 
@@ -42,7 +44,7 @@ function HomePage() {
     (activeWorkspaceId && projects === undefined)
   ) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex min-h-[calc(100svh-3.5rem)] flex-1 items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -94,17 +96,20 @@ function HomePage() {
   // No workspaces — highlighted empty state
   if (workspaces.length === 0) {
     return (
-      <EmptyStateShell
-        icon={<Building2 className="size-10 text-primary" />}
+      <EmptyTestimonial
+        variant="workspace"
         title={
           <>
             Welcome to{" "}
             <Highlighter color="hsl(var(--primary) / 0.35)">CPipeLine</Highlighter>
           </>
         }
-        description="Create your first workspace to start organizing projects and boards."
+        description="Create your first workspace to organize projects and boards."
       >
-        <form onSubmit={handleCreateWorkspace} className="w-full max-w-sm space-y-4 text-left">
+        <form
+          onSubmit={handleCreateWorkspace}
+          className="mx-auto w-full max-w-sm space-y-4 text-left"
+        >
           <div className="space-y-2">
             <Label>Workspace name</Label>
             <Input
@@ -114,12 +119,16 @@ function HomePage() {
               onChange={(e) => setWsName(e.target.value)}
             />
           </div>
-          <Button className="w-full gap-2" type="submit" disabled={loading || !wsName.trim()}>
+          <Button
+            className="w-full gap-2"
+            type="submit"
+            disabled={loading || !wsName.trim()}
+          >
             <Plus className="size-4" />
             {loading ? "Creating…" : "Create workspace"}
           </Button>
         </form>
-      </EmptyStateShell>
+      </EmptyTestimonial>
     );
   }
 
@@ -145,17 +154,17 @@ function HomePage() {
   // Workspace selected but no projects
   if (projects && projects.length === 0) {
     return (
-      <EmptyStateShell
-        icon={<Kanban className="size-10 text-primary" />}
+      <EmptyTestimonial
+        variant="project"
         title={
           <>
             <Highlighter color="hsl(var(--primary) / 0.35)">
               {activeWorkspace?.name ?? "Workspace"}
             </Highlighter>{" "}
-            is empty
+            is ready for its first board
           </>
         }
-        description="Add your first project to open a kanban board."
+        description="Name a project and open your kanban in one step."
         footer={
           <Button
             variant="ghost"
@@ -167,7 +176,10 @@ function HomePage() {
           </Button>
         }
       >
-        <form onSubmit={handleCreateProject} className="w-full max-w-sm space-y-4 text-left">
+        <form
+          onSubmit={handleCreateProject}
+          className="mx-auto w-full max-w-sm space-y-4 text-left"
+        >
           <div className="space-y-2">
             <Label>Project name</Label>
             <Input
@@ -177,12 +189,16 @@ function HomePage() {
               onChange={(e) => setProjName(e.target.value)}
             />
           </div>
-          <Button className="w-full gap-2" type="submit" disabled={loading || !projName.trim()}>
+          <Button
+            className="w-full gap-2"
+            type="submit"
+            disabled={loading || !projName.trim()}
+          >
             <Plus className="size-4" />
             {loading ? "Creating…" : "Create project"}
           </Button>
         </form>
-      </EmptyStateShell>
+      </EmptyTestimonial>
     );
   }
 
@@ -193,7 +209,7 @@ function HomePage() {
         <Button
           variant="ghost"
           size="sm"
-          className="mb-2 text-muted-foreground"
+          className="absolute left-6 top-6 z-20 text-muted-foreground"
           onClick={() => setActiveWorkspace(null)}
         >
           ← Change workspace
@@ -218,39 +234,11 @@ function HomePage() {
 
 function PickerShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-[60vh] flex-1 flex-col items-center justify-center">
-      {children}
-    </div>
-  );
-}
-
-function EmptyStateShell({
-  icon,
-  title,
-  description,
-  children,
-  footer,
-}: {
-  icon: ReactNode;
-  title: ReactNode;
-  description: string;
-  children?: ReactNode;
-  footer?: ReactNode;
-}) {
-  return (
-    <div className="flex h-full min-h-[60vh] items-center justify-center p-6">
-      <div className="w-full max-w-md space-y-6 text-center">
-        <div className="flex size-20 items-center justify-center rounded-3xl bg-primary/10 mx-auto ring-1 ring-primary/20">
-          {icon}
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-        </div>
+    <StarsShell className="relative">
+      <div className="flex w-full flex-col items-center justify-center">
         {children}
-        {footer}
       </div>
-    </div>
+    </StarsShell>
   );
 }
 
