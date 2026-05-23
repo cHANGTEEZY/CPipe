@@ -37,7 +37,7 @@ export function DataTableRowActions({
   confirmTitle = "Delete this row?",
   confirmDescription = "This cannot be undone.",
   confirmActionLabel = "Delete",
-  cancelLabel = "Keep it",
+  cancelLabel = "Cancel",
   itemName,
   align = "end",
   triggerClassName,

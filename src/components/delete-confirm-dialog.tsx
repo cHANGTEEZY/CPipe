@@ -1,10 +1,22 @@
-import { ConfirmAlertDialog } from "@/components/confirm-alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/animate-ui/components/radix/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   useDeleteConfirm,
   type DeleteConfirmSeverity,
 } from "@/hooks/use-delete-confirm";
+import { cn } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 
 export type DeleteConfirmDialogProps = {
   open: boolean;
@@ -26,77 +38,102 @@ export function DeleteConfirmDialog({
   description,
   itemName,
   confirmLabel = "Delete",
-  cancelLabel = "Keep it",
+  cancelLabel = "Cancel",
   severity = "normal",
   loading = false,
   onConfirm,
 }: DeleteConfirmDialogProps) {
   const isCritical = severity === "critical";
+  const confirmInputId = useId();
+  const [confirmInput, setConfirmInput] = useState("");
+  const confirmReady = !isCritical || confirmInput.trim() === "DELETE";
+
+  useEffect(() => {
+    if (!open) setConfirmInput("");
+  }, [open]);
 
   return (
-    <ConfirmAlertDialog open={open} onOpenChange={onOpenChange}>
-      <ConfirmAlertDialog.Content className="border-destructive/20 bg-gradient-to-b from-background to-destructive/[0.04] dark:to-destructive/[0.08]">
-        <div className="mb-4 flex justify-center">
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2 py-0.5 text-xs font-bold tracking-tight text-primary-foreground shadow-sm">
-            CP
-          </span>
-        </div>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent
+        from="top"
+        className={cn(
+          "max-w-[min(calc(100vw-2rem),22rem)] gap-0 overflow-hidden rounded-[2rem]",
+          "border-0 bg-neutral-100 p-8 shadow-lg dark:bg-neutral-900 sm:max-w-sm",
+        )}
+      >
+        <AlertDialogHeader className="items-center gap-0 text-center sm:items-center sm:text-center">
+          <AlertDialogTitle className="text-xl font-semibold tracking-tight text-foreground">
+            {title}
+          </AlertDialogTitle>
+        </AlertDialogHeader>
 
-        <ConfirmAlertDialog.Icon className="mb-1">
-          <span className="flex size-14 items-center justify-center rounded-2xl bg-destructive/12 ring-1 ring-destructive/25 sm:size-16">
-            <Trash2 className="size-7 text-destructive sm:size-8" />
-          </span>
-        </ConfirmAlertDialog.Icon>
+        <Trash2
+          className="mx-auto mt-6 size-11 text-red-500"
+          strokeWidth={1.75}
+          aria-hidden
+        />
 
-        <ConfirmAlertDialog.Header>
-          <ConfirmAlertDialog.Title>{title}</ConfirmAlertDialog.Title>
-          <ConfirmAlertDialog.Description className="max-w-sm">
+        <AlertDialogDescription asChild>
+          <p className="mt-5 text-center text-sm leading-relaxed text-muted-foreground">
+            {itemName ? (
+              <>
+                <span className="font-medium text-foreground">{itemName}</span>
+                {" — "}
+              </>
+            ) : null}
             {description}
-          </ConfirmAlertDialog.Description>
-        </ConfirmAlertDialog.Header>
+          </p>
+        </AlertDialogDescription>
 
-        {itemName ? (
-          <div
-            className="mt-5 w-full rounded-xl border border-border/80 bg-muted/50 px-4 py-3 text-center shadow-inner"
-            aria-label="Item to delete"
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              You are removing
-            </p>
-            <p className="mt-1 truncate text-base font-semibold text-foreground">
-              {itemName}
-            </p>
+        {isCritical ? (
+          <div className="mt-6 space-y-2 text-left">
+            <Label
+              htmlFor={confirmInputId}
+              className="text-xs font-medium text-foreground"
+            >
+              Type <span className="font-mono">DELETE</span> to confirm
+            </Label>
+            <Input
+              id={confirmInputId}
+              value={confirmInput}
+              onChange={(e) => setConfirmInput(e.target.value)}
+              placeholder="DELETE"
+              autoComplete="off"
+              className="h-10 border-neutral-200 bg-white font-mono text-sm dark:border-neutral-700 dark:bg-neutral-950"
+            />
           </div>
         ) : null}
 
-        {isCritical ? (
-          <ConfirmAlertDialog.Confirmation
-            match="DELETE"
-            placeholder="DELETE"
-            label="Confirmation"
-            hint="Type DELETE in uppercase to enable permanent deletion."
-          />
-        ) : null}
-
-        <ConfirmAlertDialog.Actions
-          layout={isCritical ? "stack-destructive-first" : "row"}
-        >
-          <ConfirmAlertDialog.Cancel disabled={loading}>
-            {cancelLabel}
-          </ConfirmAlertDialog.Cancel>
-          <ConfirmAlertDialog.Action
-            requiresMatch={isCritical}
-            disabled={loading}
+        <AlertDialogFooter className="mt-8 flex-row gap-3 sm:justify-center">
+          <AlertDialogAction
+            disabled={loading || !confirmReady}
+            className={cn(
+              "h-11 flex-1 cursor-pointer rounded-full border-0 shadow-none",
+              "bg-neutral-200 text-red-500 hover:bg-neutral-300 hover:text-red-600",
+              "dark:bg-neutral-800 dark:hover:bg-neutral-700",
+              "disabled:opacity-50",
+            )}
             onClick={(e) => {
               e.preventDefault();
               onConfirm();
             }}
           >
             {loading ? "Deleting…" : confirmLabel}
-          </ConfirmAlertDialog.Action>
-        </ConfirmAlertDialog.Actions>
-      </ConfirmAlertDialog.Content>
-    </ConfirmAlertDialog>
+          </AlertDialogAction>
+
+          <AlertDialogCancel
+            disabled={loading}
+            className={cn(
+              "h-11 flex-1 cursor-pointer rounded-full border-0 shadow-none",
+              "bg-red-500 text-white hover:bg-red-600 hover:text-white",
+              "dark:bg-red-500 dark:hover:bg-red-600",
+            )}
+          >
+            {cancelLabel}
+          </AlertDialogCancel>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -118,7 +155,7 @@ export function DeleteConfirmHost({
       description={active.description}
       itemName={active.itemName}
       confirmLabel={active.confirmLabel}
-      cancelLabel={active.cancelLabel}
+      cancelLabel={active.cancelLabel ?? "Cancel"}
       severity={active.severity}
       loading={loading}
       onConfirm={() => void runConfirm()}

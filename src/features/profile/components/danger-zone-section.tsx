@@ -1,9 +1,8 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { ConfirmAlertDialog } from "@/components/confirm-alert-dialog";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import { Button } from "@/components/animate-ui/components/buttons/button";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "@tanstack/react-router";
-import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -103,40 +102,16 @@ export function DangerZoneSection({ idPrefix }: DangerZoneSectionProps) {
         </div>
       </section>
 
-      <ConfirmAlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <ConfirmAlertDialog.Content>
-          <ConfirmAlertDialog.Icon aria-hidden="true">
-            <AlertTriangle />
-          </ConfirmAlertDialog.Icon>
-
-          <ConfirmAlertDialog.Header>
-            <ConfirmAlertDialog.Title>
-              Delete your account?
-            </ConfirmAlertDialog.Title>
-            <ConfirmAlertDialog.Description>
-              This permanently removes your profile and memberships. Demo only —
-              no API call runs until you connect a delete endpoint.
-            </ConfirmAlertDialog.Description>
-          </ConfirmAlertDialog.Header>
-
-          <ConfirmAlertDialog.Confirmation
-            match="DELETE"
-            placeholder="DELETE"
-            label="Confirmation"
-            hint="Type DELETE in uppercase to enable the delete button."
-          />
-
-          <ConfirmAlertDialog.Actions layout="stack-destructive-first">
-            <ConfirmAlertDialog.Cancel>Keep account</ConfirmAlertDialog.Cancel>
-            <ConfirmAlertDialog.Action
-              requiresMatch
-              onClick={handleDeleteConfirm}
-            >
-              Permanently delete account
-            </ConfirmAlertDialog.Action>
-          </ConfirmAlertDialog.Actions>
-        </ConfirmAlertDialog.Content>
-      </ConfirmAlertDialog>
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete Account"
+        description="This action cannot be undone. All your data will be permanently deleted."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        severity="critical"
+        onConfirm={handleDeleteConfirm}
+      />
     </>
   );
 }
