@@ -32,6 +32,8 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Id } from "@convex/_generated/dataModel";
+import { DeleteConfirmHost } from "@/components/delete-confirm-dialog";
+import { useDeleteConfirm } from "@/hooks/use-delete-confirm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 function initials(name: string) {
@@ -109,6 +111,7 @@ function MembersPage() {
     ) ?? [];
   const updateRole = useMutation(api.members.updateRole);
   const removeMember = useMutation(api.members.remove);
+  const deleteConfirm = useDeleteConfirm();
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "editor" | "viewer">("editor");
@@ -167,16 +170,6 @@ function MembersPage() {
       toast.success("Role updated");
     } catch (err: any) {
       toast.error(err.message ?? "Failed to update role");
-    }
-  }
-
-  async function handleRemove(memberId: Id<"members">, name: string) {
-    if (!confirm(`Remove ${name} from this workspace?`)) return;
-    try {
-      await removeMember({ memberId });
-      toast.success(`${name} removed`);
-    } catch (err: any) {
-      toast.error(err.message ?? "Failed to remove member");
     }
   }
 
@@ -375,7 +368,28 @@ function MembersPage() {
                             variant="ghost"
                             size="icon"
                             className="size-8 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
-                            onClick={() => handleRemove(m._id, name)}
+                            onClick={() =>
+                              deleteConfirm.request({
+                                title: "Remove from workspace?",
+                                description:
+                                  "They will lose access to every project in this workspace immediately.",
+                                itemName: name,
+                                confirmLabel: "Remove member",
+                                onConfirm: async () => {
+                                  try {
+                                    await removeMember({ memberId: m._id });
+                                    toast.success(`${name} removed`);
+                                  } catch (err: unknown) {
+                                    toast.error(
+                                      err instanceof Error
+                                        ? err.message
+                                        : "Failed to remove member",
+                                    );
+                                    throw err;
+                                  }
+                                },
+                              })
+                            }
                           >
                             <Trash2 className="size-4" />
                           </Button>
@@ -399,6 +413,8 @@ function MembersPage() {
       <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4 text-sm text-blue-700 dark:text-blue-300">
         <strong>Access control:</strong> Only users listed above have access to this workspace. Users not added as members cannot see or access any workspace data.
       </div>
+
+      <DeleteConfirmHost {...deleteConfirm} />
     </div>
   );
 }

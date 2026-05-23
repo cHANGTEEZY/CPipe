@@ -26,6 +26,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useAppStore } from "@/store/app-store";
+import { DeleteConfirmHost } from "@/components/delete-confirm-dialog";
+import { useDeleteConfirm } from "@/hooks/use-delete-confirm";
 
 function kindIcon(kind: Doc<"clipboardItems">["kind"]) {
   switch (kind) {
@@ -57,6 +59,7 @@ function ClipboardSheet() {
   const removeItem = useMutation(api.clipboard.remove);
   const addQuickNote = useMutation(api.clipboard.addQuickNote);
   const addLink = useMutation(api.clipboard.addLink);
+  const deleteConfirm = useDeleteConfirm();
 
   const [note, setNote] = useState("");
   const [linkTitle, setLinkTitle] = useState("");
@@ -223,7 +226,16 @@ function ClipboardSheet() {
                           variant="ghost"
                           size="icon"
                           className="size-7 text-destructive hover:text-destructive"
-                          onClick={() => handleRemove(pinItem.id)}
+                          onClick={() =>
+                            deleteConfirm.request({
+                              title: "Remove from clipboard?",
+                              description:
+                                "This only removes the saved copy — the original card or task stays on the board.",
+                              itemName: pinItem.name,
+                              confirmLabel: "Remove",
+                              onConfirm: () => handleRemove(pinItem.id),
+                            })
+                          }
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -309,6 +321,8 @@ function ClipboardSheet() {
           )}
         </div>
       </SheetContent>
+
+      <DeleteConfirmHost {...deleteConfirm} />
     </Sheet>
   );
 }

@@ -37,6 +37,8 @@ interface CardDetailModalProps {
 }
 
 import { formatDistanceToNow } from "date-fns";
+import { DeleteConfirmHost } from "@/components/delete-confirm-dialog";
+import { useDeleteConfirm } from "@/hooks/use-delete-confirm";
 
 export function CardDetailModal({
   card,
@@ -86,6 +88,7 @@ export function CardDetailModal({
   const updateCard = useMutation(api.cards.update);
   const addComment = useMutation(api.comments.create);
   const deleteComment = useMutation(api.comments.remove);
+  const deleteConfirm = useDeleteConfirm();
 
   const comments = useQuery(api.comments.list, { cardId: card._id });
   const activity = useQuery(api.activity.list, {
@@ -384,7 +387,27 @@ export function CardDetailModal({
                             size="icon"
                             className="size-6 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={() =>
-                              deleteComment({ commentId: comment._id })
+                              deleteConfirm.request({
+                                title: "Delete this comment?",
+                                description:
+                                  "The comment will be removed from this card permanently.",
+                                itemName:
+                                  comment.content.length > 48
+                                    ? `${comment.content.slice(0, 48)}…`
+                                    : comment.content,
+                                confirmLabel: "Delete comment",
+                                onConfirm: async () => {
+                                  try {
+                                    await deleteComment({
+                                      commentId: comment._id,
+                                    });
+                                    toast.success("Comment deleted");
+                                  } catch {
+                                    toast.error("Failed to delete comment");
+                                    throw new Error("Failed");
+                                  }
+                                },
+                              })
                             }
                           >
                             <Trash2 className="size-3 text-destructive" />
@@ -433,6 +456,8 @@ export function CardDetailModal({
           </Tabs>
         </div>
       </SheetContent>
+
+      <DeleteConfirmHost {...deleteConfirm} />
     </Sheet>
   );
 }

@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, GripVertical, Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { DeleteConfirmHost } from "@/components/delete-confirm-dialog";
+import { useDeleteConfirm } from "@/hooks/use-delete-confirm";
 import { cn } from "@/lib/utils";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import {
@@ -50,6 +52,7 @@ export function KanbanColumn({
   const cards = useQuery(api.cards.listByColumn, { columnId: column._id }) ?? [];
   const renameColumn = useMutation(api.columns.rename);
   const deleteColumn = useMutation(api.columns.remove);
+  const deleteConfirm = useDeleteConfirm();
 
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(column.name);
@@ -94,15 +97,6 @@ export function KanbanColumn({
       toast.error("Failed to rename");
     }
     setEditing(false);
-  }
-
-  async function handleDelete() {
-    try {
-      await deleteColumn({ columnId: column._id });
-      toast.success("Column deleted");
-    } catch {
-      toast.error("Failed to delete column");
-    }
   }
 
   const isCardOver = active?.data.current?.type === "card" && (over?.id === column._id || over?.data?.current?.columnId === column._id);
@@ -178,7 +172,26 @@ export function KanbanColumn({
                 </DropdownMenuItem>
                 {canDelete && (
                   <DropdownMenuItem
-                    onClick={handleDelete}
+                    onClick={() =>
+                      deleteConfirm.request({
+                        title: "Delete this column?",
+                        description:
+                          cards.length > 0
+                            ? `All ${cards.length} card${cards.length === 1 ? "" : "s"} in this column will be deleted too.`
+                            : "This empty column will be removed from the board.",
+                        itemName: column.name,
+                        confirmLabel: "Delete column",
+                        onConfirm: async () => {
+                          try {
+                            await deleteColumn({ columnId: column._id });
+                            toast.success("Column deleted");
+                          } catch {
+                            toast.error("Failed to delete column");
+                            throw new Error("Failed to delete column");
+                          }
+                        },
+                      })
+                    }
                     className="gap-2 text-destructive focus:text-destructive"
                   >
                     <Trash2 className="size-4" /> Delete column
@@ -242,6 +255,8 @@ export function KanbanColumn({
           <span className="font-semibold text-foreground">{totalPoints}</span>
         </div>
       )}
+
+      <DeleteConfirmHost {...deleteConfirm} />
     </div>
   );
 }

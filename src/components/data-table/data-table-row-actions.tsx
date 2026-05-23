@@ -1,16 +1,7 @@
 import * as React from "react";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,6 +22,8 @@ export type DataTableRowActionsProps = {
   confirmDescription?: React.ReactNode;
   confirmActionLabel?: string;
   cancelLabel?: string;
+  /** Shown in the branded highlight box when set */
+  itemName?: string;
   align?: "start" | "center" | "end";
   triggerClassName?: string;
 };
@@ -44,7 +37,8 @@ export function DataTableRowActions({
   confirmTitle = "Delete this row?",
   confirmDescription = "This cannot be undone.",
   confirmActionLabel = "Delete",
-  cancelLabel = "Cancel",
+  cancelLabel = "Keep it",
+  itemName,
   align = "end",
   triggerClassName,
 }: DataTableRowActionsProps) {
@@ -158,33 +152,16 @@ export function DataTableRowActions({
       </div>
 
       {showDelete ? (
-        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{confirmTitle}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {confirmDescription}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-center">
-              <AlertDialogCancel asChild>
-                <Button type="button" variant="outline" className="w-full">
-                  {cancelLabel}
-                </Button>
-              </AlertDialogCancel>
-              <AlertDialogAction asChild>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-full"
-                  onClick={handleDeleteConfirm}
-                >
-                  {confirmActionLabel}
-                </Button>
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeleteConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title={confirmTitle}
+          description={confirmDescription}
+          itemName={itemName}
+          confirmLabel={confirmActionLabel}
+          cancelLabel={cancelLabel}
+          onConfirm={handleDeleteConfirm}
+        />
       ) : null}
     </>
   );

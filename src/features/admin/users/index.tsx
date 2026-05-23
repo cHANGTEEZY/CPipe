@@ -26,6 +26,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DeleteConfirmHost } from "@/components/delete-confirm-dialog";
+import { useDeleteConfirm } from "@/hooks/use-delete-confirm";
 import { StatusBadge } from "./components/status-badge";
 import { initialsFromName } from "./utils/initials";
 
@@ -33,6 +35,7 @@ function AdminUsersPage() {
   const users = useQuery(api.users.listAll) ?? [];
   const updateStatus = useMutation(api.users.updateStatus);
   const deleteUser = useMutation(api.users.deleteUser);
+  const deleteConfirm = useDeleteConfirm();
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -49,19 +52,6 @@ function AdminUsersPage() {
       toast.error(
         err instanceof Error ? err.message : "Failed to update status",
       );
-    } finally {
-      setActionLoading(null);
-    }
-  }
-
-  async function handleDelete(userId: Id<"users">, name: string) {
-    if (!confirm(`Permanently delete ${name}? This cannot be undone.`)) return;
-    setActionLoading(userId);
-    try {
-      await deleteUser({ userId });
-      toast.success(`${name} deleted`);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete user");
     } finally {
       setActionLoading(null);
     }
@@ -278,7 +268,32 @@ function AdminUsersPage() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="gap-2 text-destructive focus:text-destructive"
-                    onClick={() => handleDelete(u._id, u.displayName)}
+                    onClick={() =>
+                      deleteConfirm.request({
+                        title: "Delete this user?",
+                        description:
+                          "Their account and profile will be removed from CPipe permanently.",
+                        itemName: u.displayName,
+                        severity: "critical",
+                        confirmLabel: "Delete user",
+                        onConfirm: async () => {
+                          setActionLoading(u._id);
+                          try {
+                            await deleteUser({ userId: u._id });
+                            toast.success(`${u.displayName} deleted`);
+                          } catch (err: unknown) {
+                            toast.error(
+                              err instanceof Error
+                                ? err.message
+                                : "Failed to delete user",
+                            );
+                            throw err;
+                          } finally {
+                            setActionLoading(null);
+                          }
+                        },
+                      })
+                    }
                   >
                     <Trash2 className="size-4" />
                     Delete user
@@ -290,7 +305,7 @@ function AdminUsersPage() {
         },
       },
     ],
-    [actionLoading],
+    [actionLoading, deleteConfirm, deleteUser],
   );
 
   const facetedFilters = [
@@ -339,6 +354,8 @@ function AdminUsersPage() {
         searchPlaceholder="Search users..."
         facetedFilters={facetedFilters}
       />
+
+      <DeleteConfirmHost {...deleteConfirm} />
     </div>
   );
 }

@@ -14,6 +14,8 @@ import { Check, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { formatTagLabel, normalizeTag } from "@/lib/tag-utils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { DeleteConfirmHost } from "@/components/delete-confirm-dialog";
+import { useDeleteConfirm } from "@/hooks/use-delete-confirm";
 
 type OptionField = "status" | "priority";
 
@@ -46,6 +48,7 @@ export function ProjectOptionSelect({
   const project = useQuery(api.projects.get, { projectId });
   const addOption = useMutation(api.projectFields.addOption);
   const removeOption = useMutation(api.projectFields.removeOption);
+  const deleteConfirm = useDeleteConfirm();
 
   const options =
     (project?.[FIELD_TO_KEY[field]] as string[] | undefined) ?? [];
@@ -65,8 +68,7 @@ export function ProjectOptionSelect({
     }
   }
 
-  async function handleRemove(option: string, e: React.MouseEvent) {
-    e.stopPropagation();
+  async function performRemove(option: string) {
     try {
       await removeOption({ projectId, field, value: option });
       if (value === option) onChange("");
@@ -75,6 +77,7 @@ export function ProjectOptionSelect({
       toast.error(
         err instanceof Error ? err.message : "Failed to remove option",
       );
+      throw err;
     }
   }
 
@@ -123,7 +126,17 @@ export function ProjectOptionSelect({
                   label={formatTagLabel(opt)}
                   onDelete={
                     canManage && !disabled
-                      ? (e) => void handleRemove(opt, e)
+                      ? (e) => {
+                          e.stopPropagation();
+                          deleteConfirm.request({
+                            title: `Remove ${label.toLowerCase()} option?`,
+                            description:
+                              "Cards already using this value keep it — it just won't show up for new picks.",
+                            itemName: formatTagLabel(opt),
+                            confirmLabel: "Remove option",
+                            onConfirm: () => performRemove(opt),
+                          });
+                        }
                       : undefined
                   }
                 />
@@ -163,6 +176,8 @@ export function ProjectOptionSelect({
           )}
         </PopoverContent>
       </Popover>
+
+      <DeleteConfirmHost {...deleteConfirm} />
     </div>
   );
 }

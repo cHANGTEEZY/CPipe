@@ -26,6 +26,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { Id } from "@convex/_generated/dataModel";
+import { DeleteConfirmHost } from "@/components/delete-confirm-dialog";
+import { useDeleteConfirm } from "@/hooks/use-delete-confirm";
 
 export function ProjectSwitcher() {
   const hydrated = useAppStoreHydrated();
@@ -36,6 +38,7 @@ export function ProjectSwitcher() {
   );
   const createProject = useMutation(api.projects.create);
   const removeProject = useMutation(api.projects.remove);
+  const deleteConfirm = useDeleteConfirm();
 
   const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -122,18 +125,6 @@ export function ProjectSwitcher() {
     }
   }
 
-  async function handleDelete(projectId: Id<"projects">, name: string) {
-    try {
-      await removeProject({ projectId });
-      if (activeProjectId === projectId) setActiveProject(null);
-      toast.success(`Project "${name}" deleted`);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete project";
-      toast.error(message);
-    }
-  }
-
   if (!activeWorkspaceId) return null;
 
   return (
@@ -188,7 +179,28 @@ export function ProjectSwitcher() {
                 className="size-6 opacity-0 group-hover/item:opacity-100 ml-1 hover:text-destructive"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDelete(p._id, p.name);
+                  setOpen(false);
+                  deleteConfirm.request({
+                    title: "Delete this project?",
+                    description:
+                      "The kanban board, checklist, and all cards in this project will be removed.",
+                    itemName: p.name,
+                    confirmLabel: "Delete project",
+                    onConfirm: async () => {
+                      try {
+                        await removeProject({ projectId: p._id });
+                        if (activeProjectId === p._id) setActiveProject(null);
+                        toast.success(`Project "${p.name}" deleted`);
+                      } catch (err: unknown) {
+                        toast.error(
+                          err instanceof Error
+                            ? err.message
+                            : "Failed to delete project",
+                        );
+                        throw err;
+                      }
+                    },
+                  });
                 }}
               >
                 <Trash2 className="size-3" />
@@ -250,6 +262,8 @@ export function ProjectSwitcher() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmHost {...deleteConfirm} />
     </>
   );
 }

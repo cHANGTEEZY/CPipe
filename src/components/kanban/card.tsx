@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { formatTagLabel } from "@/lib/tag-utils";
 import { toast } from "sonner";
 import { ClipboardActionButton } from "@/components/clipboard/clipboard-action-button";
+import { DeleteConfirmHost } from "@/components/delete-confirm-dialog";
+import { useDeleteConfirm } from "@/hooks/use-delete-confirm";
 
 const LABEL_COLORS: Record<string, string> = {
   bug: "bg-red-500/15 text-red-600",
@@ -65,6 +67,7 @@ export function KanbanCard({
   const addToClipboard = useMutation(api.clipboard.addCard);
   const linked = useQuery(api.clipboard.listLinkedSourceIds);
   const onClipboard = linked?.cardIds.includes(card._id) ?? false;
+  const deleteConfirm = useDeleteConfirm();
 
   const comments = useQuery(api.comments.list, { cardId: card._id });
   const project = useQuery(api.projects.get, { projectId: card.projectId });
@@ -94,16 +97,6 @@ export function KanbanCard({
     zIndex: isSortableDragging ? 100 : undefined,
     touchAction: "none",
   };
-
-  async function handleDelete(e: React.MouseEvent) {
-    e.stopPropagation();
-    try {
-      await removeCard({ cardId: card._id });
-      toast.success("Card deleted");
-    } catch {
-      toast.error("Failed to delete card");
-    }
-  }
 
   async function handleAddToClipboard() {
     if (onClipboard) {
@@ -242,7 +235,25 @@ export function KanbanCard({
                 variant="ghost"
                 size="icon"
                 className="size-6 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10"
-                onClick={handleDelete}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteConfirm.request({
+                    title: "Delete this card?",
+                    description:
+                      "Comments and activity on this card will be removed from the board.",
+                    itemName: card.title,
+                    confirmLabel: "Delete card",
+                    onConfirm: async () => {
+                      try {
+                        await removeCard({ cardId: card._id });
+                        toast.success("Card deleted");
+                      } catch {
+                        toast.error("Failed to delete card");
+                        throw new Error("Failed to delete card");
+                      }
+                    },
+                  });
+                }}
               >
                 <Trash2 className="size-3.5" />
               </Button>
@@ -250,6 +261,8 @@ export function KanbanCard({
           </div>
         </div>
       </div>
+
+      <DeleteConfirmHost {...deleteConfirm} />
 
       <CardDetailModal
         card={card}

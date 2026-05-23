@@ -15,6 +15,8 @@ import { Check, ChevronDown, Plus, Trash2, X } from "lucide-react";
 import { formatTagLabel, normalizeTag } from "@/lib/tag-utils";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { DeleteConfirmHost } from "@/components/delete-confirm-dialog";
+import { useDeleteConfirm } from "@/hooks/use-delete-confirm";
 
 interface ProjectLabelSelectProps {
   projectId: Id<"projects">;
@@ -36,6 +38,7 @@ export function ProjectLabelSelect({
   const project = useQuery(api.projects.get, { projectId });
   const addOption = useMutation(api.projectFields.addOption);
   const removeOption = useMutation(api.projectFields.removeOption);
+  const deleteConfirm = useDeleteConfirm();
 
   const options = project?.labelOptions ?? [];
 
@@ -62,8 +65,7 @@ export function ProjectLabelSelect({
     }
   }
 
-  async function handleRemoveFromProject(option: string, e: React.MouseEvent) {
-    e.stopPropagation();
+  async function performRemoveFromProject(option: string) {
     try {
       await removeOption({ projectId, field: "label", value: option });
       onChange(values.filter((v) => v !== option));
@@ -72,6 +74,7 @@ export function ProjectLabelSelect({
       toast.error(
         err instanceof Error ? err.message : "Failed to remove label",
       );
+      throw err;
     }
   }
 
@@ -149,7 +152,17 @@ export function ProjectLabelSelect({
                             variant="ghost"
                             size="icon"
                             className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
-                            onClick={(e) => void handleRemoveFromProject(opt, e)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteConfirm.request({
+                                title: "Remove label from project?",
+                                description:
+                                  "The label disappears from the picker. Cards that already use it are unchanged.",
+                                itemName: formatTagLabel(opt),
+                                confirmLabel: "Remove label",
+                                onConfirm: () => performRemoveFromProject(opt),
+                              });
+                            }}
                             aria-label={`Delete ${formatTagLabel(opt)} from project`}
                           >
                             <Trash2 className="size-3.5" />
@@ -195,6 +208,8 @@ export function ProjectLabelSelect({
           </PopoverContent>
         </Popover>
       )}
+
+      <DeleteConfirmHost {...deleteConfirm} />
     </div>
   );
 }

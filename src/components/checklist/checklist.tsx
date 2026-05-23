@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { DeleteConfirmHost } from "@/components/delete-confirm-dialog";
+import { useDeleteConfirm } from "@/hooks/use-delete-confirm";
 import { ListTodo, Trash2 } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -36,6 +38,7 @@ function Checklist({
   onRemove,
   onAddToClipboard,
 }: ChecklistProps) {
+  const deleteConfirm = useDeleteConfirm();
   const linked = useQuery(api.clipboard.listLinkedSourceIds);
   const onClipboardSet = useMemo(
     () => new Set(linked?.todoIds ?? []),
@@ -52,6 +55,7 @@ function Checklist({
   }));
 
   return (
+    <>
     <PinList
       items={pinItems}
       layoutIdPrefix="project-checklist"
@@ -79,7 +83,16 @@ function Checklist({
               variant="ghost"
               size="icon"
               className="size-7 text-destructive hover:text-destructive"
-              onClick={() => onRemove(item.id)}
+              onClick={() =>
+                deleteConfirm.request({
+                  title: "Remove this task?",
+                  description:
+                    "It will disappear from the checklist. You can always add it again.",
+                  itemName: item.name,
+                  confirmLabel: "Remove",
+                  onConfirm: () => onRemove(item.id),
+                })
+              }
             >
               <Trash2 className="size-3.5" />
             </Button>
@@ -87,6 +100,8 @@ function Checklist({
         </>
       )}
     />
+    <DeleteConfirmHost {...deleteConfirm} />
+    </>
   );
 }
 
