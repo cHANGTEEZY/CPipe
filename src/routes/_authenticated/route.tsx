@@ -14,6 +14,7 @@ import {
   SidebarTrigger,
 } from "@/components/animate-ui/components/radix/sidebar";
 import ProfileDropDown from "@/components/profile-dropdown";
+import { ClipboardButton } from "@/components/clipboard/clipboard-button";
 import { WorkspaceProjectSync } from "@/components/workspace-project-sync";
 import { WorkspaceInviteBanner } from "@/components/workspace-invite-banner";
 import { Loader2 } from "lucide-react";
@@ -99,6 +100,7 @@ function RouteComponent() {
             </span>
           </div>
           <div className="ml-auto gap-2 flex items-center justify-center">
+            {!isSuperAdmin && <ClipboardButton />}
             <ThemeToggle />
             <ProfileDropDown />
           </div>

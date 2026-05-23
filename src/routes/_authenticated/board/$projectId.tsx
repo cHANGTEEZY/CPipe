@@ -1,12 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import type { Id } from "@convex/_generated/dataModel";
-import BoardPage from "@/features/board";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/board/$projectId")({
-  component: BoardRoute,
+  component: ProjectLayout,
 });
 
-function BoardRoute() {
-  const { projectId } = Route.useParams();
-  return <BoardPage projectId={projectId as Id<"projects">} />;
+function ProjectLayout() {
+  return <Outlet />;
 }

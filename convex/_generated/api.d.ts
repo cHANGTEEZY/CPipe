@@ -11,6 +11,7 @@
 import type * as activity from "../activity.js";
 import type * as auth from "../auth.js";
 import type * as cards from "../cards.js";
+import type * as clipboard from "../clipboard.js";
 import type * as columns from "../columns.js";
 import type * as comments from "../comments.js";
 import type * as emails from "../emails.js";
@@ -18,6 +19,7 @@ import type * as http from "../http.js";
 import type * as invites from "../invites.js";
 import type * as members from "../members.js";
 import type * as projectFields from "../projectFields.js";
+import type * as projectTodos from "../projectTodos.js";
 import type * as projects from "../projects.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
@@ -33,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   activity: typeof activity;
   auth: typeof auth;
   cards: typeof cards;
+  clipboard: typeof clipboard;
   columns: typeof columns;
   comments: typeof comments;
   emails: typeof emails;
@@ -40,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   invites: typeof invites;
   members: typeof members;
   projectFields: typeof projectFields;
+  projectTodos: typeof projectTodos;
   projects: typeof projects;
   users: typeof users;
   utils: typeof utils;

@@ -136,6 +136,37 @@ export default defineSchema({
     deletedAt: v.optional(v.number()),
   }).index("by_card", ["cardId"]),
 
+  // Project checklist (separate from kanban cards)
+  projectTodos: defineTable({
+    projectId: v.id("projects"),
+    scope: v.union(v.literal("project"), v.literal("personal")),
+    userId: v.optional(v.id("users")),
+    title: v.string(),
+    pinned: v.boolean(),
+    completed: v.boolean(),
+    order: v.number(),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+  })
+    .index("by_project_scope", ["projectId", "scope"])
+    .index("by_project_user", ["projectId", "userId"]),
+
+  // Per-user clipboard (todos, cards, links from any workspace)
+  clipboardItems: defineTable({
+    userId: v.id("users"),
+    kind: v.union(v.literal("todo"), v.literal("card"), v.literal("link")),
+    title: v.string(),
+    sourceLabel: v.string(),
+    sourceProjectId: v.optional(v.id("projects")),
+    sourceCardId: v.optional(v.id("cards")),
+    sourceTodoId: v.optional(v.id("projectTodos")),
+    url: v.optional(v.string()),
+    completed: v.boolean(),
+    pinned: v.boolean(),
+    order: v.number(),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   // Activity log
   activity: defineTable({
     workspaceId: v.optional(v.id("workspaces")),

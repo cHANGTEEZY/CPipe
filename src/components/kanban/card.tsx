@@ -11,6 +11,7 @@ import { Trash2, MessageSquare, Flag, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTagLabel } from "@/lib/tag-utils";
 import { toast } from "sonner";
+import { ClipboardActionButton } from "@/components/clipboard/clipboard-action-button";
 
 const LABEL_COLORS: Record<string, string> = {
   bug: "bg-red-500/15 text-red-600",
@@ -61,7 +62,10 @@ export function KanbanCard({
   const isDragBlocked = !!dragBlockReason;
   const [detailOpen, setDetailOpen] = useState(false);
   const removeCard = useMutation(api.cards.remove);
-  
+  const addToClipboard = useMutation(api.clipboard.addCard);
+  const linked = useQuery(api.clipboard.listLinkedSourceIds);
+  const onClipboard = linked?.cardIds.includes(card._id) ?? false;
+
   const comments = useQuery(api.comments.list, { cardId: card._id });
   const project = useQuery(api.projects.get, { projectId: card.projectId });
   const members = useQuery(api.members.list, project?.workspaceId ? { workspaceId: project.workspaceId } : "skip");
@@ -98,6 +102,21 @@ export function KanbanCard({
       toast.success("Card deleted");
     } catch {
       toast.error("Failed to delete card");
+    }
+  }
+
+  async function handleAddToClipboard() {
+    if (onClipboard) {
+      toast.info("Already on clipboard");
+      return;
+    }
+    try {
+      await addToClipboard({ cardId: card._id });
+      toast.success("Added to clipboard");
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to add to clipboard",
+      );
     }
   }
 
@@ -208,6 +227,16 @@ export function KanbanCard({
           </div>
 
           <div className="flex items-center gap-2">
+            <div
+              className="opacity-0 group-hover:opacity-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ClipboardActionButton
+                onClipboard={onClipboard}
+                onClick={handleAddToClipboard}
+                className="size-6"
+              />
+            </div>
             {canDelete && (
               <Button
                 variant="ghost"

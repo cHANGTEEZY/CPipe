@@ -92,8 +92,7 @@ export const sendWorkspaceInviteEmail = internalAction({
     }
 
     const resend = new Resend(resendApiKey);
-    const roleLabel =
-      args.role.charAt(0).toUpperCase() + args.role.slice(1);
+    const roleLabel = args.role.charAt(0).toUpperCase() + args.role.slice(1);
 
     try {
       await resend.emails.send({

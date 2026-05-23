@@ -19,11 +19,11 @@ import { api } from "@convex/_generated/api";
 import { Logo } from "@/components/logo";
 import {
   LayoutDashboard,
-  Settings,
   Users,
   Activity,
   Shield,
   UserCog,
+  CheckSquare,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -88,9 +88,9 @@ export function AppSidebar() {
           to: `/board/${activeProjectId}`,
         },
         {
-          title: "Settings",
-          icon: Settings,
-          to: `/board/${activeProjectId}/settings`,
+          title: "Checklist",
+          icon: CheckSquare,
+          to: `/board/${activeProjectId}/checklist`,
         },
       ]
     : [];
