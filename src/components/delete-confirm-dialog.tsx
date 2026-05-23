@@ -109,8 +109,8 @@ export function DeleteConfirmDialog({
             disabled={loading || !confirmReady}
             className={cn(
               "h-11 flex-1 cursor-pointer rounded-full border-0 shadow-none",
-              "bg-neutral-200 text-red-500 hover:bg-neutral-300 hover:text-red-600",
-              "dark:bg-neutral-800 dark:hover:bg-neutral-700",
+              "bg-red-500 text-white hover:bg-red-600 hover:text-white",
+              "dark:bg-red-500 dark:hover:bg-red-600",
               "disabled:opacity-50",
             )}
             onClick={(e) => {
@@ -125,8 +125,8 @@ export function DeleteConfirmDialog({
             disabled={loading}
             className={cn(
               "h-11 flex-1 cursor-pointer rounded-full border-0 shadow-none",
-              "bg-red-500 text-white hover:bg-red-600 hover:text-white",
-              "dark:bg-red-500 dark:hover:bg-red-600",
+              "bg-neutral-200 text-muted-foreground hover:bg-neutral-300 hover:text-foreground",
+              "dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-neutral-200",
             )}
           >
             {cancelLabel}
